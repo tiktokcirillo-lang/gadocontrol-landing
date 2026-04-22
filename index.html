@@ -500,19 +500,38 @@ footer{
 
 /* ── STATS ─────────────────────────────────────────────── */
 #stats{
-  padding:52px 0;position:relative;z-index:1;
-  border-top:1px solid rgba(34,197,94,.07);
-  border-bottom:1px solid rgba(34,197,94,.07);
-  background:rgba(34,197,94,.012);
+  padding:0;position:relative;z-index:1;
 }
-.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;text-align:center}
-.snum{
-  font-size:clamp(32px,4vw,52px);font-weight:900;
-  letter-spacing:-2px;color:var(--green);
-  font-variant-numeric:tabular-nums;line-height:1;margin-bottom:6px;
+.sgrid{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  border-top:1px solid rgba(34,197,94,.1);
+  border-bottom:1px solid rgba(34,197,94,.1);
 }
-.snum .gd{color:var(--gold)}
-.slbl{font-size:13px;color:var(--muted)}
+.scard{
+  padding:44px 36px;
+  border-right:1px solid rgba(34,197,94,.07);
+  position:relative;
+  transition:background .3s;
+}
+.scard:last-child{border-right:none}
+.scard::before{
+  content:'';
+  position:absolute;top:0;left:36px;right:36px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--green),transparent);
+  opacity:0;transition:opacity .4s;
+}
+.scard:hover::before{opacity:.6}
+.scard:hover{background:rgba(34,197,94,.018)}
+.sval{
+  font-size:clamp(36px,3.8vw,58px);font-weight:900;
+  letter-spacing:-2.5px;line-height:1;margin-bottom:8px;
+  color:var(--green);font-variant-numeric:tabular-nums;
+}
+.sval.gd{color:var(--gold)}
+.slbl{
+  font-size:12px;font-weight:500;letter-spacing:.3px;
+  color:rgba(134,239,172,.45);
+}
 
 /* ── FAQ ───────────────────────────────────────────────── */
 #faq{padding:120px 0}
@@ -638,6 +657,8 @@ footer{
   .sconn{display:none}
   .pgrid{grid-template-columns:1fr;max-width:480px}
   .sgrid{grid-template-columns:1fr 1fr}
+  .scard{border-bottom:1px solid rgba(34,197,94,.07)}
+  .scard:nth-child(even){border-right:none}
 }
 @media(max-width:580px){
   .fgrid{grid-template-columns:1fr}
@@ -645,6 +666,7 @@ footer{
   .hctas,.cbtns{flex-direction:column;align-items:flex-start}
   .cbtns{align-items:center}
   .sgrid{grid-template-columns:1fr 1fr}
+  .scard{padding:32px 24px}
 }
 
 /* ── REDUCED MOTION ────────────────────────────────────── */
@@ -767,12 +789,22 @@ footer{
 
 <!-- STATS -->
 <section id="stats">
-  <div class="si">
-    <div class="sgrid">
-      <div class="sr"><div class="snum" data-count="2400" data-suffix="+">0+</div><div class="slbl">fazendas cadastradas</div></div>
-      <div class="sr" style="--d:.1s"><div class="snum"><span class="gd">100%</span></div><div class="slbl">funcional offline</div></div>
-      <div class="sr" style="--d:.2s"><div class="snum" data-count="98" data-suffix="%">0%</div><div class="slbl">de satisfação no uso</div></div>
-      <div class="sr" style="--d:.3s"><div class="snum"><span class="gd">0h</span></div><div class="slbl">de planilha por semana</div></div>
+  <div class="sgrid">
+    <div class="scard sr">
+      <div class="sval" data-count="2400" data-suffix="+">0+</div>
+      <div class="slbl">fazendas cadastradas</div>
+    </div>
+    <div class="scard sr" style="--d:.08s">
+      <div class="sval gd">100%</div>
+      <div class="slbl">funcional offline</div>
+    </div>
+    <div class="scard sr" style="--d:.16s">
+      <div class="sval" data-count="98" data-suffix="%">0%</div>
+      <div class="slbl">de satisfação no uso</div>
+    </div>
+    <div class="scard sr" style="--d:.24s">
+      <div class="sval gd">0h</div>
+      <div class="slbl">de planilha por semana</div>
     </div>
   </div>
 </section>
@@ -1478,7 +1510,7 @@ function initStats(){
       obs.unobserve(el);
     });
   },{threshold:.4});
-  document.querySelectorAll('[data-count]').forEach(el=>obs.observe(el));
+  document.querySelectorAll('.sval[data-count]').forEach(el=>obs.observe(el));
 }
 
 // ── COOKIE BAR ─────────────────────────────────────────────────────
