@@ -47,19 +47,21 @@ body{
   transition:opacity .5s,transform .5s;
 }
 .pre-logo b{color:var(--green)}
+.pre-cow-wrap{width:240px;position:relative}
+.pre-cow-bar{height:54px;position:relative}
+#preCow{
+  position:absolute;bottom:0;left:0%;
+  transform:translateX(-50%);
+  width:72px;height:54px;
+}
 .pre-track{
-  width:180px;height:1px;
-  background:rgba(34,197,94,.12);
-  overflow:hidden;
+  width:100%;height:1px;
+  background:rgba(34,197,94,.14);
 }
 .pre-fill{
   height:100%;width:0%;
   background:linear-gradient(90deg,var(--green),var(--gold));
-  transition:width .04s linear;
-}
-.pre-num{
-  font-size:12px;font-weight:600;letter-spacing:2.5px;color:var(--dim);
-  font-variant-numeric:tabular-nums;
+  transition:width .06s linear;
 }
 
 /* ── CURSOR ────────────────────────────────────────────── */
@@ -168,6 +170,11 @@ h1 .ac{color:var(--green)}
 }
 .hctas{
   display:flex;gap:14px;flex-wrap:wrap;
+  opacity:0;transform:translateY(18px);
+}
+.hurge{
+  font-size:12px;color:rgba(134,239,172,.32);
+  margin-top:16px;letter-spacing:.2px;line-height:1.6;
   opacity:0;transform:translateY(18px);
 }
 .hbtn{
@@ -500,7 +507,7 @@ footer{
 
 /* ── STATS ─────────────────────────────────────────────── */
 #stats{
-  padding:0;position:relative;z-index:1;
+  padding:56px 0;position:relative;z-index:1;
 }
 .sgrid{
   display:grid;grid-template-columns:repeat(4,1fr);
@@ -659,14 +666,43 @@ footer{
   .sgrid{grid-template-columns:1fr 1fr}
   .scard{border-bottom:1px solid rgba(34,197,94,.07)}
   .scard:nth-child(even){border-right:none}
+  #feat{padding:90px 0}
+  #como{padding:90px 0}
+  #planos{padding:90px 0}
+  #testi{padding:90px 0}
+  #faq{padding:90px 0}
+  #cta{padding:110px clamp(16px,4vw,64px)}
 }
-@media(max-width:580px){
+@media(max-width:640px){
+  nav{padding:0 16px;height:58px}
+  .nbtn.g{display:none}
   .fgrid{grid-template-columns:1fr}
   .tgrid{grid-template-columns:1fr}
   .hctas,.cbtns{flex-direction:column;align-items:flex-start}
+  .hbtn{font-size:14px;padding:13px 22px;width:100%;justify-content:center}
   .cbtns{align-items:center}
+  .hbtn.o{width:auto}
   .sgrid{grid-template-columns:1fr 1fr}
-  .scard{padding:32px 24px}
+  .scard{padding:30px 20px}
+  .plan{padding:30px 24px}
+  .mbox{padding:32px 22px;border-radius:16px}
+  .hscroll{display:none}
+  footer{flex-direction:column;align-items:flex-start;gap:14px}
+  .flinks{flex-wrap:wrap;gap:12px}
+  #feat{padding:72px 0}
+  #como{padding:72px 0}
+  #planos{padding:72px 0}
+  #testi{padding:72px 0}
+  #faq{padding:72px 0}
+  #cta{padding:88px clamp(16px,4vw,48px)}
+  .ctitle{font-size:clamp(32px,8vw,60px);letter-spacing:-2px}
+}
+@media(max-width:400px){
+  h1{letter-spacing:-2px}
+  .sgrid{grid-template-columns:1fr}
+  .scard:nth-child(odd){border-right:none}
+  .sval{font-size:clamp(32px,8vw,48px)}
+  .nbtn.s{font-size:12px;padding:7px 14px}
 }
 
 /* ── REDUCED MOTION ────────────────────────────────────── */
@@ -684,8 +720,12 @@ footer{
 <!-- PRELOADER -->
 <div id="pre">
   <div class="pre-logo">Gado<b>Control</b></div>
-  <div class="pre-track"><div class="pre-fill" id="pfill"></div></div>
-  <div class="pre-num" id="pnum">0%</div>
+  <div class="pre-cow-wrap">
+    <div class="pre-cow-bar">
+      <canvas id="preCow"></canvas>
+    </div>
+    <div class="pre-track"><div class="pre-fill" id="pfill"></div></div>
+  </div>
 </div>
 
 <!-- CURSOR -->
@@ -707,7 +747,7 @@ footer{
   </a>
   <div class="nright">
     <a class="nbtn g" href="/app">Entrar</a>
-    <a class="nbtn s mag" href="/app">Começar grátis</a>
+    <a class="nbtn s mag" href="/app">Testar 14 dias</a>
   </div>
 </nav>
 
@@ -727,10 +767,11 @@ footer{
       <div class="hctas">
         <a class="hbtn p mag" href="/app">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-          Começar grátis agora
+          Testar agora — 14 dias
         </a>
         <a class="hbtn o" href="#feat">Ver como funciona</a>
       </div>
+      <p class="hurge">Sem cartão. Sem fidelidade. Mais de 2.400 produtores já usam.</p>
     </div>
     <div class="hero-phone">
       <div class="mock-glow"></div>
@@ -933,7 +974,7 @@ footer{
   <div class="si">
     <div class="shdr sr" style="margin-bottom:60px">
       <div class="stag">Plano justo pra cada tamanho de fazenda</div>
-      <h2>Comece grátis.<br><em>Cresça sem travar.</em></h2>
+      <h2>14 dias de teste.<br><em>Cresça sem travar.</em></h2>
       <p class="sdesc" style="margin:0 auto">Sem cartão de crédito. Sem fidelidade. Você usa, vê o resultado e decide.</p>
     </div>
     <div class="pgrid sr">
@@ -950,7 +991,7 @@ footer{
           <li class="off">Financeiro completo</li>
           <li class="off">Múltiplos colaboradores</li>
         </ul>
-        <a class="pbtn f mag" href="/app">Começar grátis</a>
+        <a class="pbtn f mag" href="/app">Acessar o app agora</a>
       </div>
       <div class="plan ft">
         <div class="pchip">Em breve</div>
@@ -1040,11 +1081,11 @@ footer{
   <div class="cglow"></div>
   <div class="cinner sr">
     <h2 class="ctitle">Todo dia sem controle<br>é dinheiro saindo <em style="color:var(--gold)">sem você ver.</em></h2>
-    <p class="csub">Mais de 2.400 produtores de fazendas pequenas, médias e grandes já pararam de usar planilha. Você pode começar agora, de graça, sem cartão e sem complicação nenhuma.</p>
+    <p class="csub">Mais de 2.400 produtores já saíram da planilha. São 14 dias de teste completo, sem cartão de crédito e sem fidelidade. Você usa, vê o resultado e decide.</p>
     <div class="cbtns">
       <a class="bgold mag" href="/app">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-        Começar agora — é grátis
+        Começar agora
       </a>
       <a class="hbtn o" href="#planos">Ver planos</a>
     </div>
@@ -1468,22 +1509,47 @@ function initNav(){
 // ── PRELOADER + HERO REVEAL ────────────────────────────────────────
 function runPre(){
   const fill=document.getElementById('pfill');
-  const num=document.getElementById('pnum');
   const pre=document.getElementById('pre');
   const logo=pre.querySelector('.pre-logo');
+  const cowC=document.getElementById('preCow');
+  const cowX=cowC.getContext('2d');
 
-  // CSS transition handles logo fade-in (no GSAP needed here)
+  // Size canvas for device pixel ratio
+  const dpr=Math.min(devicePixelRatio,2);
+  const CW=72,CH=54;
+  cowC.width=CW*dpr; cowC.height=CH*dpr;
+  cowC.style.width=CW+'px'; cowC.style.height=CH+'px';
+
+  // CSS transition for logo
   setTimeout(()=>{ logo.style.opacity='1'; logo.style.transform='translateY(0)'; },150);
+
+  // Walking cow animation on preloader bar
+  let cowPhase=0,cowRaf;
+  function drawPreCow(){
+    cowX.setTransform(dpr,0,0,dpr,0,0);
+    cowX.clearRect(0,0,CW,CH);
+    cowX.fillStyle='rgba(74,222,128,.75)';
+    cowX.strokeStyle='rgba(74,222,128,.75)';
+    cowX.save();
+    cowX.translate(CW/2,32);
+    cowX.scale(0.25,0.25);
+    drawCow(cowX,cowPhase);
+    cowX.restore();
+    cowPhase+=0.08;
+    cowRaf=requestAnimationFrame(drawPreCow);
+  }
+  drawPreCow();
 
   let p=0;
   const iv=setInterval(()=>{
     p+=Math.random()*13+2;
     if(p>=100){p=100;clearInterval(iv);reveal();}
     fill.style.width=p+'%';
-    num.textContent=Math.round(p)+'%';
+    cowC.style.left=p+'%';
   },55);
 
   function reveal(){
+    cancelAnimationFrame(cowRaf);
     setTimeout(()=>{
       gsap.to(pre,{yPercent:-100,duration:1.1,ease:'power3.inOut',
         onComplete:()=>pre.style.display='none'});
@@ -1495,6 +1561,7 @@ function runPre(){
         .to('.htag',  {opacity:1,y:0,duration:.6,ease:'power2.out'},.05)
         .to('.hsub',  {opacity:1,y:0,duration:.65,ease:'power2.out'},.4)
         .to('.hctas', {opacity:1,y:0,duration:.65,ease:'power2.out'},.55)
+        .to('.hurge', {opacity:1,y:0,duration:.65,ease:'power2.out'},.65)
         .to('.nlogo,.nright',{opacity:1,duration:.5,ease:'power2.out'},.3)
         .to('#hcanvas',{opacity:1,duration:1.8,ease:'power2.out'},0)
         .to('#hs',    {opacity:1,duration:.7,ease:'power2.out'},1.1);
