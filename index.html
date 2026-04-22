@@ -628,6 +628,33 @@ footer{
 .mok h3{font-size:20px;font-weight:700;margin-bottom:8px}
 .mok p{font-size:14px;color:var(--muted);line-height:1.65}
 
+/* ── MODAL COUNTDOWN ───────────────────────────────────── */
+.mcountdown{
+  background:rgba(212,168,71,.05);
+  border:1px solid rgba(212,168,71,.15);
+  border-radius:12px;padding:12px 16px;
+  margin-bottom:20px;text-align:center;
+}
+.mcd-lbl{
+  font-size:9px;font-weight:700;letter-spacing:1.8px;
+  text-transform:uppercase;color:rgba(212,168,71,.6);margin-bottom:9px;
+}
+.mcd-boxes{display:flex;align-items:center;justify-content:center;gap:5px}
+.mcd-box{
+  background:rgba(212,168,71,.08);border-radius:7px;
+  padding:5px 9px;min-width:46px;
+}
+.mcd-box span{
+  display:block;font-size:19px;font-weight:900;letter-spacing:-1px;
+  color:var(--gold);font-variant-numeric:tabular-nums;
+}
+.mcd-box em{
+  display:block;font-size:8px;font-style:normal;
+  color:rgba(212,168,71,.45);text-transform:uppercase;
+  letter-spacing:1px;margin-top:1px;
+}
+.mcd-dot{font-size:16px;font-weight:700;color:rgba(212,168,71,.25);padding-bottom:12px}
+
 /* ── COOKIE BAR ────────────────────────────────────────── */
 #cbar{
   position:fixed;bottom:0;left:0;right:0;z-index:7000;
@@ -1124,6 +1151,18 @@ footer{
     <div class="mchip">✦ Plano Pro — Em breve</div>
     <h3 class="mtitle">Entre na lista<br>de espera</h3>
     <p class="msub">Seja um dos primeiros a acessar o GadoControl Pro e ganhe desconto exclusivo no lançamento.</p>
+    <div class="mcountdown">
+      <div class="mcd-lbl">Lançamento do Pro em</div>
+      <div class="mcd-boxes">
+        <div class="mcd-box"><span id="cdD">--</span><em>dias</em></div>
+        <div class="mcd-dot">:</div>
+        <div class="mcd-box"><span id="cdH">--</span><em>horas</em></div>
+        <div class="mcd-dot">:</div>
+        <div class="mcd-box"><span id="cdM">--</span><em>min</em></div>
+        <div class="mcd-dot">:</div>
+        <div class="mcd-box"><span id="cdS">--</span><em>seg</em></div>
+      </div>
+    </div>
     <form class="mform" id="lform">
       <input type="text"  class="minput" placeholder="Seu nome completo" required>
       <input type="email" class="minput" placeholder="Seu melhor e-mail" required>
@@ -1688,6 +1727,29 @@ window.addEventListener('DOMContentLoaded',()=>{
   initCanvasPause();
   try{ initLenis(); }catch(e){ console.warn('Lenis init failed:',e); }
 
+  // ── COUNTDOWN TIMER ─────────────────────────────────────
+  (function(){
+    const end=new Date('2026-06-15T00:00:00-03:00');
+    const fmt=n=>String(n).padStart(2,'0');
+    function tick(){
+      const diff=Math.max(0,end-new Date());
+      const d=Math.floor(diff/86400000);
+      const h=Math.floor((diff%86400000)/3600000);
+      const m=Math.floor((diff%3600000)/60000);
+      const s=Math.floor((diff%60000)/1000);
+      const cdD=document.getElementById('cdD');
+      const cdH=document.getElementById('cdH');
+      const cdM=document.getElementById('cdM');
+      const cdS=document.getElementById('cdS');
+      if(cdD)cdD.textContent=fmt(d);
+      if(cdH)cdH.textContent=fmt(h);
+      if(cdM)cdM.textContent=fmt(m);
+      if(cdS)cdS.textContent=fmt(s);
+    }
+    tick();
+    setInterval(tick,1000);
+  })();
+
   // Modal & form listeners (safe here — DOM is guaranteed ready)
   const mbg=document.getElementById('mbg');
   const lform=document.getElementById('lform');
@@ -1699,15 +1761,11 @@ window.addEventListener('DOMContentLoaded',()=>{
     const email=inputs[1]?.value.trim()||'';
     const rebanho=inputs[2]?.value.trim()||'';
     const btn=lform.querySelector('.msubmit');
-    if(btn){btn.disabled=true;btn.textContent='Enviando...';}
+    if(btn){btn.disabled=true;btn.textContent='Confirmando...';}
     if(typeof window.salvarLead==='function'){
       await window.salvarLead(nome,email,rebanho);
     }
-    const mf=document.querySelector('.mform');
-    if(mf)mf.style.display='none';
-    const mok=document.getElementById('mok');
-    if(mok)mok.style.display='block';
-    setTimeout(closeModal,3200);
+    window.location.href='/obrigado?nome='+encodeURIComponent(nome);
   });
 });
 </script>

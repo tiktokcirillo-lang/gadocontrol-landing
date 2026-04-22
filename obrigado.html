@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Você está na lista — GadoControl</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050a06;--green:#22c55e;--green2:#4ade80;
+  --gold:#d4a847;--gold2:#f0c96e;--text:#ecfdf5;
+  --muted:#86efac;--dim:rgba(74,222,128,.3);
+  --glass:rgba(255,255,255,.028);--gb:rgba(34,197,94,.11);
+  --r:14px;--rl:22px;
+}
+body{
+  font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;
+  background:var(--bg);color:var(--text);
+  overflow-x:hidden;-webkit-font-smoothing:antialiased;
+  min-height:100svh;
+}
+
+/* NAV */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:500;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 clamp(20px,5.5vw,96px);height:66px;
+  background:rgba(5,10,6,.92);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+  border-bottom:1px solid rgba(34,197,94,.07);
+}
+.nlogo{
+  display:flex;align-items:center;gap:9px;
+  font-size:16px;font-weight:800;text-decoration:none;color:var(--text);
+}
+.nicon{
+  width:30px;height:30px;border-radius:8px;
+  background:var(--green);display:flex;align-items:center;justify-content:center;
+}
+.nicon svg{width:17px;height:17px}
+.nlogo b{color:var(--green)}
+.nbtn{
+  font-family:inherit;font-size:13px;font-weight:700;
+  padding:8px 18px;border-radius:8px;cursor:pointer;
+  text-decoration:none;display:inline-flex;align-items:center;gap:6px;
+  background:var(--green);border:1px solid var(--green);
+  color:#051007;box-shadow:0 0 18px rgba(34,197,94,.2);
+  transition:background .2s;
+}
+.nbtn:hover{background:var(--green2)}
+
+/* MAIN */
+main{
+  min-height:100svh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:120px clamp(20px,5.5vw,96px) 80px;
+  text-align:center;position:relative;
+}
+.ob-glow{
+  position:fixed;top:40%;left:50%;transform:translate(-50%,-50%);
+  width:800px;height:600px;pointer-events:none;
+  background:radial-gradient(ellipse,rgba(34,197,94,.07) 0%,transparent 65%);
+}
+.ob-wrap{position:relative;z-index:1;max-width:720px;width:100%}
+
+/* CHECK */
+.ob-check{
+  width:84px;height:84px;border-radius:50%;
+  background:rgba(34,197,94,.1);border:2px solid rgba(34,197,94,.28);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 28px;color:var(--green);
+  opacity:0;transform:scale(.7);
+  animation:pop .65s cubic-bezier(.16,1,.3,1) .1s forwards;
+}
+@keyframes pop{to{opacity:1;transform:scale(1)}}
+
+.ob-tag{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:10px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;
+  color:var(--gold);margin-bottom:14px;
+  opacity:0;animation:fadein .5s ease .4s forwards;
+}
+.ob-dot{width:5px;height:5px;border-radius:50%;background:var(--gold);animation:blink 2s ease infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+@keyframes fadein{to{opacity:1}}
+
+.ob-title{
+  font-size:clamp(34px,5vw,62px);
+  font-weight:900;letter-spacing:-2.5px;line-height:1.0;
+  margin-bottom:16px;
+  opacity:0;animation:slideup .65s cubic-bezier(.16,1,.3,1) .3s forwards;
+}
+.ob-title em{font-style:normal;color:var(--green)}
+@keyframes slideup{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+
+.ob-sub{
+  font-size:17px;color:var(--muted);line-height:1.7;
+  max-width:500px;margin:0 auto 52px;
+  opacity:0;animation:slideup .65s cubic-bezier(.16,1,.3,1) .45s forwards;
+}
+
+/* STEPS */
+.ob-steps{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:14px;
+  margin-bottom:44px;text-align:left;
+  opacity:0;animation:slideup .65s cubic-bezier(.16,1,.3,1) .55s forwards;
+}
+.ob-step{
+  background:var(--glass);border:1px solid var(--gb);
+  border-radius:var(--rl);padding:26px 22px;
+  display:flex;flex-direction:column;gap:10px;
+  transition:border-color .3s;
+}
+.ob-step:hover{border-color:rgba(34,197,94,.24)}
+.ob-sn{
+  width:36px;height:36px;border-radius:10px;flex-shrink:0;
+  background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.18);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:900;color:var(--green);
+}
+.ob-st{font-size:15px;font-weight:700;letter-spacing:-.2px}
+.ob-sd{font-size:13.5px;color:var(--muted);line-height:1.65;flex:1}
+.ob-sa{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:13px;font-weight:700;color:var(--green);
+  text-decoration:none;margin-top:4px;
+}
+.ob-sa:hover{text-decoration:underline}
+.ob-sa svg{width:12px;height:12px;flex-shrink:0}
+.ob-sa.wpp{color:#25d366}
+
+/* CTAs */
+.ob-ctas{
+  display:flex;justify-content:center;gap:12px;flex-wrap:wrap;
+  opacity:0;animation:slideup .65s cubic-bezier(.16,1,.3,1) .7s forwards;
+}
+.ob-primary{
+  font-family:inherit;font-size:16px;font-weight:700;
+  padding:16px 34px;border-radius:10px;border:none;cursor:pointer;
+  background:var(--green);color:#051007;text-decoration:none;
+  display:inline-flex;align-items:center;gap:9px;
+  box-shadow:0 0 40px rgba(34,197,94,.25),0 4px 20px rgba(0,0,0,.4);
+  transition:all .25s;
+}
+.ob-primary:hover{background:var(--green2);transform:translateY(-2px)}
+.ob-wpp{
+  font-family:inherit;font-size:15px;font-weight:600;
+  padding:16px 28px;border-radius:10px;cursor:pointer;
+  background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.22);
+  color:#25d366;text-decoration:none;
+  display:inline-flex;align-items:center;gap:8px;
+  transition:all .25s;
+}
+.ob-wpp:hover{background:rgba(37,211,102,.14);transform:translateY(-2px)}
+
+/* FOOTER */
+footer{
+  border-top:1px solid rgba(34,197,94,.06);
+  padding:28px clamp(20px,5.5vw,96px);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;position:relative;z-index:1;
+}
+.flogo{font-size:14px;font-weight:700;color:var(--muted);text-decoration:none}
+.flogo b{color:var(--green)}
+.fcopy{font-size:12px;color:rgba(134,239,172,.2)}
+
+/* RESPONSIVE */
+@media(max-width:760px){
+  .ob-steps{grid-template-columns:1fr}
+  .ob-title{letter-spacing:-2px}
+}
+@media(max-width:520px){
+  .ob-ctas{flex-direction:column;align-items:stretch}
+  .ob-primary,.ob-wpp{justify-content:center}
+  main{padding:100px clamp(16px,4vw,32px) 60px}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nlogo" href="/">
+    <div class="nicon">
+      <svg viewBox="0 0 17 17" fill="none">
+        <path d="M2.5 12C2.5 12 3.5 6.5 8.5 6.5C13.5 6.5 14.5 12 14.5 12" stroke="#051007" stroke-width="1.8" stroke-linecap="round"/>
+        <circle cx="6" cy="9.5" r="1.4" fill="#051007"/>
+        <circle cx="11" cy="9.5" r="1.4" fill="#051007"/>
+        <path d="M7 12C7 12 7.5 13.2 8.5 13.2C9.5 13.2 10 12 10 12" stroke="#051007" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+    </div>
+    Gado<b>Control</b>
+  </a>
+  <a class="nbtn" href="/app">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+    Acessar o app
+  </a>
+</nav>
+
+<main>
+  <div class="ob-glow"></div>
+  <div class="ob-wrap">
+
+    <div class="ob-check">
+      <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+
+    <div class="ob-tag"><div class="ob-dot"></div>Lista de espera confirmada</div>
+
+    <h1 class="ob-title">
+      <span id="obGreet">Você está na lista</span><br>
+      <em>do GadoControl Pro.</em>
+    </h1>
+
+    <p class="ob-sub" id="obSub">Avisaremos assim que o lançamento estiver próximo. Você terá acesso antecipado com desconto exclusivo para quem entrou na lista agora.</p>
+
+    <div class="ob-steps">
+
+      <div class="ob-step">
+        <div class="ob-sn">1</div>
+        <div class="ob-st">Comece a usar agora</div>
+        <div class="ob-sd">O plano gratuito já está disponível. Cadastre sua fazenda e experimente offline hoje mesmo, sem cartão.</div>
+        <a class="ob-sa" href="/app">
+          Acessar o app
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+
+      <div class="ob-step">
+        <div class="ob-sn">2</div>
+        <div class="ob-st">Fique de olho no e-mail</div>
+        <div class="ob-sd">Quando o Pro lançar, você recebe um aviso com link de acesso e o desconto exclusivo para quem garantiu vaga antes do lançamento.</div>
+      </div>
+
+      <div class="ob-step">
+        <div class="ob-sn">3</div>
+        <div class="ob-st">Indica para outros produtores</div>
+        <div class="ob-sd">Conhece um pecuarista que ainda gerencia rebanho em planilha? Manda o link. Você ajuda e ele agradece depois.</div>
+        <a class="ob-sa wpp" id="wppLink" href="#" target="_blank" rel="noopener">
+          Compartilhar no WhatsApp
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+
+    </div>
+
+    <div class="ob-ctas">
+      <a class="ob-primary" href="/app">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        Começar a usar agora
+      </a>
+      <a class="ob-wpp" id="wppBtn" href="#" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.373 0 0 5.373 0 12c0 2.117.552 4.105 1.516 5.834L.045 23.454a.5.5 0 00.601.601l5.62-1.471A11.946 11.946 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm.001 21.818a9.818 9.818 0 01-5.003-1.366l-.359-.213-3.33.872.887-3.249-.234-.374A9.818 9.818 0 012.182 12C2.182 6.567 6.568 2.182 12 2.182c5.432 0 9.818 4.385 9.818 9.818 0 5.432-4.386 9.818-9.818 9.818z"/></svg>
+        Compartilhar no WhatsApp
+      </a>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <a class="flogo" href="/"><b>Gado</b>Control</a>
+  <span class="fcopy">© 2026 GadoControl</span>
+</footer>
+
+<!-- GA4 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DKLJ165JMD"></script>
+<script>
+window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments);}
+gtag('js',new Date());
+gtag('config','G-DKLJ165JMD');
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+
+<script>
+(function(){
+  const params=new URLSearchParams(location.search);
+  const nome=(params.get('nome')||'').trim();
+  const primeiroNome=nome?nome.split(' ')[0]:'';
+
+  // Personalize greeting
+  if(primeiroNome){
+    document.getElementById('obGreet').textContent=primeiroNome+', você está na lista';
+    document.title=primeiroNome+' está na lista — GadoControl';
+  }
+
+  // WhatsApp share link
+  const url='https://gadocontrol.vercel.app';
+  const msg=primeiroNome
+    ? primeiroNome+' entrou na lista do GadoControl Pro. Se você ainda gerencia rebanho em planilha, dá uma olhada: '+url
+    : 'Entrei na lista do GadoControl Pro. Se você ainda usa planilha pra gerir rebanho, dá uma olhada: '+url;
+  const wppHref='https://wa.me/?text='+encodeURIComponent(msg);
+  document.getElementById('wppLink').href=wppHref;
+  document.getElementById('wppBtn').href=wppHref;
+
+  // GA4 conversion event
+  if(typeof gtag!=='undefined'){
+    gtag('event','lead_obrigado',{nome:primeiroNome||'anonimo'});
+  }
+})();
+</script>
+
+</body>
+</html>
