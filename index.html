@@ -1762,9 +1762,14 @@ window.addEventListener('DOMContentLoaded',()=>{
     const rebanho=inputs[2]?.value.trim()||'';
     const btn=lform.querySelector('.msubmit');
     if(btn){btn.disabled=true;btn.textContent='Confirmando...';}
-    if(typeof window.salvarLead==='function'){
-      await window.salvarLead(nome,email,rebanho);
-    }
+    await Promise.allSettled([
+      typeof window.salvarLead==='function' ? window.salvarLead(nome,email,rebanho) : Promise.resolve(),
+      fetch('/api/send-email',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({nome,email})
+      }).catch(()=>{})
+    ]);
     window.location.href='/obrigado?nome='+encodeURIComponent(nome);
   });
 });
