@@ -1072,7 +1072,6 @@ footer{
 <script src="js/ScrollTrigger.min.js?v=2"></script>
 <script>
 'use strict';
-gsap.registerPlugin(ScrollTrigger);
 
 const lerp=(a,b,t)=>a+(b-a)*t;
 
@@ -1402,7 +1401,8 @@ function runPre(){
   const pre=document.getElementById('pre');
   const logo=pre.querySelector('.pre-logo');
 
-  gsap.to(logo,{opacity:1,y:0,duration:.5,delay:.15});
+  // CSS transition handles logo fade-in (no GSAP needed here)
+  setTimeout(()=>{ logo.style.opacity='1'; logo.style.transform='translateY(0)'; },150);
 
   let p=0;
   const iv=setInterval(()=>{
@@ -1527,6 +1527,10 @@ function initLenis(){
 
 // ── BOOT ───────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded',()=>{
+  // Register GSAP plugin safely (after scripts are guaranteed loaded)
+  if(typeof gsap!=='undefined'&&typeof ScrollTrigger!=='undefined'){
+    gsap.registerPlugin(ScrollTrigger);
+  }
   // runPre first — preloader must always start regardless of other inits
   runPre();
   buildMarquee();
