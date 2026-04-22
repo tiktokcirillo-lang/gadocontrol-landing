@@ -1087,14 +1087,14 @@ window.addEventListener('mousemove',e=>{
 // ── CURSOR ─────────────────────────────────────────────────────────
 const cdot=document.getElementById('cdot');
 const cring=document.getElementById('cring');
-const R={x:0,y:0};
+const RingPos={x:0,y:0};
 let craf;
 
 function tickCursor(){
-  R.x=lerp(R.x,M.px,.1);
-  R.y=lerp(R.y,M.py,.1);
+  RingPos.x=lerp(RingPos.x,M.px,.1);
+  RingPos.y=lerp(RingPos.y,M.py,.1);
   cdot.style.cssText=`left:${M.px}px;top:${M.py}px`;
-  cring.style.cssText=`left:${R.x}px;top:${R.y}px`;
+  cring.style.cssText=`left:${RingPos.x}px;top:${RingPos.y}px`;
   craf=requestAnimationFrame(tickCursor);
 }
 tickCursor();
