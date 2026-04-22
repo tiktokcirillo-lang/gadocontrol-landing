@@ -2213,6 +2213,35 @@ body {
   </div>
 </div>
 
+<!-- MODAL PDF PAY-PER-USE -->
+<div id="m-pdf" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#1a1a2e;border-radius:20px;max-width:400px;width:100%;padding:32px 28px;border:1px solid rgba(255,255,255,.1);box-shadow:0 24px 64px rgba(0,0,0,.5);text-align:center">
+    <div style="font-size:2.2rem;margin-bottom:12px">📄</div>
+    <h2 style="color:#fff;font-size:1.2rem;font-weight:800;margin:0 0 8px">Relatório PDF</h2>
+    <p style="color:rgba(255,255,255,.55);font-size:.88rem;margin:0 0 24px;line-height:1.6">No plano gratuito, cada relatório PDF gerado custa <strong style="color:#f0c96e">R$ 4,90</strong>. No plano Pro, geração ilimitada por R$ 49,90/mês.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+      <div style="background:rgba(255,255,255,.05);border-radius:12px;padding:14px;border:1px solid rgba(255,255,255,.08)">
+        <div style="font-size:.7rem;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:1px;margin-bottom:6px">AVULSO</div>
+        <div style="font-size:1.3rem;font-weight:800;color:#fff">R$ 4,90</div>
+        <div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:2px">por relatório</div>
+      </div>
+      <div style="background:linear-gradient(135deg,rgba(74,222,128,.12),rgba(34,197,94,.06));border-radius:12px;padding:14px;border:1px solid rgba(74,222,128,.3)">
+        <div style="font-size:.7rem;font-weight:700;color:#4ade80;letter-spacing:1px;margin-bottom:6px">PRO ⭐</div>
+        <div style="font-size:1.3rem;font-weight:800;color:#4ade80">R$ 49,90</div>
+        <div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:2px">ilimitado/mês</div>
+      </div>
+    </div>
+
+    <button onclick="fecharModalPDF();abrirUpgradeModal()" style="width:100%;background:#16a34a;color:#fff;border:none;border-radius:12px;padding:14px;font-size:.95rem;font-weight:800;cursor:pointer;margin-bottom:8px">
+      Assinar Pro — ilimitado
+    </button>
+    <button onclick="fecharModalPDF()" style="width:100%;background:transparent;color:rgba(255,255,255,.35);border:none;border-radius:12px;padding:10px;font-size:.82rem;cursor:pointer">
+      Cancelar
+    </button>
+  </div>
+</div>
+
 <!-- MODAL UPGRADE -->
 <div id="m-upgrade" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:16px">
   <div style="background:#1a1a2e;border-radius:20px;max-width:420px;width:100%;padding:32px 28px;border:1px solid rgba(255,255,255,.1);box-shadow:0 24px 64px rgba(0,0,0,.5)">
@@ -9937,6 +9966,7 @@ function initRelMensalTab() {
 }
 
 function gerarRelatorioMensal(anoParam, mesParam) {
+  if (!checkPDFAccess()) return;
   const agora = new Date();
   const ano = anoParam || parseInt(document.getElementById('rel-ano-sel')?.value) || agora.getFullYear();
   const mes = mesParam || parseInt(document.getElementById('rel-mes-sel')?.value) || agora.getMonth()+1;
@@ -10438,6 +10468,7 @@ function gerarRelatorioMensal(anoParam, mesParam) {
 // EXPORTAR PDF  (jsPDF + AutoTable)
 // ───────────────────────────────────────────
 function exportPDF() {
+  if (!checkPDFAccess()) return;
   showExportSpinner('Gerando PDF...');
   Promise.all([
     loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
@@ -12268,6 +12299,25 @@ const BETA_TRIAL_DAYS  = 60;
 window.userPlan        = 'free';
 window.inTrial         = false;
 window.trialDaysLeft   = 0;
+
+// ── PDF: liberado no beta, pago após os 60 dias no free ──
+function checkPDFAccess() {
+  // Pro: sempre liberado
+  if (window.userPlan === 'pro') return true;
+  // Beta ativo: liberado
+  if (window.inTrial) return true;
+  // Free pós-beta: mostra modal de cobrança
+  abrirModalPDF();
+  return false;
+}
+
+function abrirModalPDF() {
+  document.getElementById('m-pdf').style.display = 'flex';
+}
+
+function fecharModalPDF() {
+  document.getElementById('m-pdf').style.display = 'none';
+}
 
 function updateTrialBadge() {
   let badge = document.getElementById('trial-badge');
