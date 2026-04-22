@@ -1098,7 +1098,51 @@ footer{
   </div>
 </div>
 
+<!-- ── GOOGLE ANALYTICS 4 ──────────────────────────────── -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DKLJ165JMD"></script>
+<script>
+  window.dataLayer=window.dataLayer||[];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js',new Date());
+  gtag('config','G-DKLJ165JMD');
+</script>
+
+<!-- ── VERCEL ANALYTICS ────────────────────────────────── -->
+<script defer src="/_vercel/insights/script.js"></script>
+
 <!-- ── SCRIPTS ──────────────────────────────────────────── -->
+<script type="module">
+  import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import{getFirestore,collection,addDoc,serverTimestamp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  const app=initializeApp({
+    apiKey:"AIzaSyB0HyLHnpgL6VTSCondWEWl5FAnYMAOC2I",
+    authDomain:"gadocontrol-c9864.firebaseapp.com",
+    projectId:"gadocontrol-c9864",
+    storageBucket:"gadocontrol-c9864.firebasestorage.app",
+    messagingSenderId:"928676825469",
+    appId:"1:928676825469:web:f13b9031d632cf2a362414"
+  });
+  const db=getFirestore(app);
+
+  window.salvarLead=async function(nome,email,rebanho){
+    try{
+      await addDoc(collection(db,'leads_landing'),{
+        nome,email,rebanho,
+        origem:'landing_page',
+        criadoEm:serverTimestamp()
+      });
+      if(typeof gtag!=='undefined'){
+        gtag('event','lead_capturado',{nome,rebanho});
+      }
+      return true;
+    }catch(e){
+      console.error('Firestore:',e);
+      return false;
+    }
+  };
+</script>
+
 <script src="js/lenis.min.js?v=2"></script>
 <script src="js/gsap.min.js?v=2"></script>
 <script src="js/ScrollTrigger.min.js?v=2"></script>
@@ -1578,9 +1622,18 @@ window.addEventListener('DOMContentLoaded',()=>{
   const mbg=document.getElementById('mbg');
   const lform=document.getElementById('lform');
   if(mbg) mbg.addEventListener('click',e=>{ if(e.target===mbg)closeModal(); });
-  if(lform) lform.addEventListener('submit',e=>{
+  if(lform) lform.addEventListener('submit',async e=>{
     e.preventDefault();
-    const mf=lform.closest('.mform')||document.querySelector('.mform');
+    const inputs=lform.querySelectorAll('.minput');
+    const nome=inputs[0]?.value.trim()||'';
+    const email=inputs[1]?.value.trim()||'';
+    const rebanho=inputs[2]?.value.trim()||'';
+    const btn=lform.querySelector('.msubmit');
+    if(btn){btn.disabled=true;btn.textContent='Enviando...';}
+    if(typeof window.salvarLead==='function'){
+      await window.salvarLead(nome,email,rebanho);
+    }
+    const mf=document.querySelector('.mform');
     if(mf)mf.style.display='none';
     const mok=document.getElementById('mok');
     if(mok)mok.style.display='block';
