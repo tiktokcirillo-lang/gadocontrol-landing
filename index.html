@@ -122,8 +122,9 @@ nav.sc{
 
 /* ── HERO ──────────────────────────────────────────────── */
 #hero{
-  position:relative;height:100svh;min-height:600px;
+  position:relative;height:100svh;min-height:640px;
   display:flex;align-items:center;overflow:hidden;
+  padding-top:80px;padding-bottom:48px;
 }
 #hcanvas{
   position:absolute;inset:0;width:100%;height:100%;
@@ -676,6 +677,9 @@ footer{
 @media(max-width:640px){
   nav{padding:0 16px;height:58px}
   .nbtn.g{display:none}
+  #hero{padding-top:66px;padding-bottom:40px}
+  h1{font-size:clamp(42px,11vw,96px);letter-spacing:-2.5px}
+  .hsub{font-size:15px;margin-bottom:32px}
   .fgrid{grid-template-columns:1fr}
   .tgrid{grid-template-columns:1fr}
   .hctas,.cbtns{flex-direction:column;align-items:flex-start}
