@@ -1444,17 +1444,7 @@ function closeModal(){
   document.getElementById('mbg').classList.remove('open');
   document.body.style.overflow='';
 }
-document.getElementById('mbg').addEventListener('click',e=>{
-  if(e.target===document.getElementById('mbg'))closeModal();
-});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
-
-document.getElementById('lform').addEventListener('submit',e=>{
-  e.preventDefault();
-  document.querySelector('.mform').style.display='none';
-  document.getElementById('mok').style.display='block';
-  setTimeout(closeModal,3200);
-});
 
 // ── FAQ ACCORDION ──────────────────────────────────────────────────
 function initFAQ(){
@@ -1527,13 +1517,9 @@ function initMockReveal(){
 
 // ── LENIS SMOOTH SCROLL ────────────────────────────────────────────
 function initLenis(){
-  const mm=window.matchMedia('(prefers-reduced-motion:reduce)');
-  if(mm.matches)return;
-  const lenis=new Lenis({
-    duration:1.25,
-    easing:t=>Math.min(1,1.001-Math.pow(2,-10*t)),
-    smooth:true,
-  });
+  if(window.matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  if(typeof Lenis==='undefined')return;
+  const lenis=new Lenis({duration:1.2});
   lenis.on('scroll',ScrollTrigger.update);
   gsap.ticker.add(time=>lenis.raf(time*1000));
   gsap.ticker.lagSmoothing(0);
@@ -1541,6 +1527,8 @@ function initLenis(){
 
 // ── BOOT ───────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded',()=>{
+  // runPre first — preloader must always start regardless of other inits
+  runPre();
   buildMarquee();
   initSR();
   initNav();
@@ -1548,8 +1536,20 @@ window.addEventListener('DOMContentLoaded',()=>{
   initStats();
   initCookie();
   initCanvasPause();
-  initLenis();
-  runPre();
+  try{ initLenis(); }catch(e){ console.warn('Lenis init failed:',e); }
+
+  // Modal & form listeners (safe here — DOM is guaranteed ready)
+  const mbg=document.getElementById('mbg');
+  const lform=document.getElementById('lform');
+  if(mbg) mbg.addEventListener('click',e=>{ if(e.target===mbg)closeModal(); });
+  if(lform) lform.addEventListener('submit',e=>{
+    e.preventDefault();
+    const mf=lform.closest('.mform')||document.querySelector('.mform');
+    if(mf)mf.style.display='none';
+    const mok=document.getElementById('mok');
+    if(mok)mok.style.display='block';
+    setTimeout(closeModal,3200);
+  });
 });
 </script>
 </body>
