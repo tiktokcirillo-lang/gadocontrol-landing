@@ -2218,8 +2218,8 @@ body {
   <div style="background:#1a1a2e;border-radius:20px;max-width:420px;width:100%;padding:32px 28px;border:1px solid rgba(255,255,255,.1);box-shadow:0 24px 64px rgba(0,0,0,.5)">
     <div style="text-align:center;margin-bottom:24px">
       <div style="font-size:2.4rem;margin-bottom:8px">🚀</div>
-      <h2 style="color:#fff;font-size:1.3rem;font-weight:800;margin:0 0 6px">Limite do plano gratuito</h2>
-      <p style="color:rgba(255,255,255,.55);font-size:.88rem;margin:0">Você atingiu <strong id="upgrade-uso" style="color:#4ade80">30/30</strong> animais vivos no plano Free.</p>
+      <h2 id="upgrade-titulo" style="color:#fff;font-size:1.3rem;font-weight:800;margin:0 0 6px">Limite do plano gratuito</h2>
+      <p id="upgrade-subtit" style="color:rgba(255,255,255,.55);font-size:.88rem;margin:0">Você atingiu <strong id="upgrade-uso" style="color:#4ade80">30/30</strong> animais vivos no plano Free.</p>
     </div>
 
     <!-- comparativo -->
@@ -7944,7 +7944,7 @@ async function _processarConviteAutomatico(code, user) {
   localStorage.setItem('_gado_faz_'  + user.uid, newFazId);
   localStorage.setItem('_gado_role_' + user.uid, 'member');
 
-  await _fbDb.doc(`users/${user.uid}`).set({ fazendaId: newFazId, role: 'member' })
+  await _fbDb.doc(`users/${user.uid}`).set({ fazendaId: newFazId, role: 'member', createdAt: new Date().toISOString() })
     .catch(e => console.error('[GadoControl] Erro ao salvar usuário:', e.code, e.message));
 
   await _fbDb.doc(`invites/${code}`).update({ accepted: true, acceptedBy: user.uid })
@@ -8008,9 +8008,29 @@ async function initFazenda(user) {
 
   const userData = userSnap.exists ? userSnap.data() : null;
 
-  // Plano do usuário
-  window.userPlan = userData?.plan || 'free';
-  if (typeof checkUserPlan === 'function') checkUserPlan(user.uid);
+  // ── Plano e Beta de 60 dias ──
+  const BETA_DAYS = 60;
+  let createdAt = userData?.createdAt ? new Date(userData.createdAt) : null;
+
+  // Se não tem createdAt, salva agora (usuários existentes)
+  if (!createdAt) {
+    createdAt = new Date();
+    try { await _fbDb.doc(`users/${user.uid}`).update({ createdAt: createdAt.toISOString() }); } catch(e) {}
+  }
+
+  const daysSince   = Math.floor((Date.now() - createdAt.getTime()) / 86400000);
+  const daysLeft    = Math.max(0, BETA_DAYS - daysSince);
+  window.inTrial    = daysLeft > 0;
+  window.trialDaysLeft = daysLeft;
+  window.userPlan   = (userData?.plan === 'pro') ? 'pro' : (window.inTrial ? 'pro' : 'free');
+
+  // Exibe badge de dias restantes no header
+  if (window.userPlan !== 'pro' || window.inTrial) updateTrialBadge();
+
+  // Asaas: verifica assinatura ativa em background
+  if (window.userPlan !== 'pro') {
+    checkUserPlan(user.uid).then(() => { if (window.userPlan === 'pro') updateTrialBadge(); });
+  }
 
   if (userData && userData.fazendaId) {
     // ── Usuário já tem fazenda ──
@@ -8061,7 +8081,7 @@ async function initFazenda(user) {
 
     await _fbDb.doc(`fazendas/${fazendaId}`).set(fazendaInfo)
       .catch(e => console.error('[GadoControl] Erro ao criar fazenda:', e.code, e.message));
-    await _fbDb.doc(`users/${user.uid}`).set({ fazendaId, role: 'owner' })
+    await _fbDb.doc(`users/${user.uid}`).set({ fazendaId, role: 'owner', createdAt: new Date().toISOString() })
       .catch(e => console.error('[GadoControl] Erro ao registrar usuário:', e.code, e.message));
 
     DB_KEY = 'gadocontrol_v3_' + fazendaId;
@@ -8306,7 +8326,7 @@ async function aceitarConvite() {
   // Atualiza cache local e registro do usuário
   localStorage.setItem('_gado_faz_'  + user.uid, newFazId);
   localStorage.setItem('_gado_role_' + user.uid, 'member');
-  await _fbDb.doc(`users/${user.uid}`).set({ fazendaId: newFazId, role: 'member' })
+  await _fbDb.doc(`users/${user.uid}`).set({ fazendaId: newFazId, role: 'member', createdAt: new Date().toISOString() })
     .catch(e => console.error('[GadoControl] aceitarConvite: erro ao salvar usuário:', e.code, e.message));
 
   // Marca convite como aceito
@@ -12243,8 +12263,35 @@ window.addEventListener('load', function() {
 // PLANOS — GadoControl Free vs Pro
 // ═══════════════════════════════════════════
 
-const PLAN_LIMIT_FREE = 30;
-window.userPlan = 'free'; // sobrescrito após login
+const PLAN_LIMIT_FREE  = 30;
+const BETA_TRIAL_DAYS  = 60;
+window.userPlan        = 'free';
+window.inTrial         = false;
+window.trialDaysLeft   = 0;
+
+function updateTrialBadge() {
+  let badge = document.getElementById('trial-badge');
+  if (window.userPlan === 'pro' && !window.inTrial) {
+    if (badge) badge.remove();
+    return;
+  }
+  if (!badge) {
+    badge = document.createElement('button');
+    badge.id = 'trial-badge';
+    badge.onclick = abrirUpgradeModal;
+    badge.style.cssText = 'background:rgba(212,168,71,.18);border:1px solid rgba(212,168,71,.4);color:#f0c96e;border-radius:20px;padding:4px 10px;font-size:.68rem;font-weight:800;cursor:pointer;white-space:nowrap;font-family:inherit';
+    const actions = document.querySelector('.hdr-actions');
+    if (actions) actions.prepend(badge);
+  }
+  if (window.inTrial) {
+    badge.textContent = `Beta: ${window.trialDaysLeft}d restantes`;
+  } else {
+    badge.textContent = 'Free · 30 animais';
+    badge.style.background = 'rgba(255,255,255,.08)';
+    badge.style.borderColor = 'rgba(255,255,255,.2)';
+    badge.style.color       = 'rgba(255,255,255,.6)';
+  }
+}
 
 async function checkUserPlan(uid) {
   try {
@@ -12266,6 +12313,18 @@ function countAnimaisVivos() {
 function abrirUpgradeModal(contexto) {
   const vivos = countAnimaisVivos();
   document.getElementById('upgrade-uso').textContent = vivos + '/' + PLAN_LIMIT_FREE;
+
+  // Ajusta título do modal dependendo do contexto
+  const titulo = document.getElementById('upgrade-titulo');
+  const subtit  = document.getElementById('upgrade-subtit');
+  if (!window.inTrial && window.userPlan !== 'pro') {
+    if (titulo) titulo.textContent = 'Seu período beta encerrou';
+    if (subtit) subtit.innerHTML  = 'Obrigado por testar o GadoControl por 60 dias! Para continuar com acesso completo, assine o plano Pro.';
+  } else {
+    if (titulo) titulo.textContent = 'Limite do plano gratuito';
+    if (subtit) subtit.innerHTML  = `Você atingiu <strong id="upgrade-uso" style="color:#4ade80">${vivos}/${PLAN_LIMIT_FREE}</strong> animais vivos no plano Free.`;
+  }
+
   document.getElementById('m-upgrade').style.display = 'flex';
 }
 
