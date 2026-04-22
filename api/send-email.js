@@ -1,6 +1,7 @@
-// Vercel Serverless Function — envia email de boas-vindas via Resend
+// Vercel Serverless Function — envia email de boas-vindas via Gmail SMTP
+const nodemailer = require('nodemailer');
+
 module.exports = async function handler(req, res) {
-  // CORS preflight
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -16,28 +17,21 @@ module.exports = async function handler(req, res) {
   const firstName = (nome || 'Produtor').split(' ')[0];
   const appUrl = process.env.APP_URL || 'https://gadocontrol-landing.vercel.app/app';
 
-  const html = buildEmail(firstName, appUrl);
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_PASS,
+    },
+  });
 
   try {
-    const r = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'GadoControl <onboarding@resend.dev>',
-        to: [email],
-        subject: `${firstName}, sua vaga no GadoControl está reservada!`,
-        html,
-      }),
+    await transporter.sendMail({
+      from: `"GadoControl" <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: `${firstName}, sua vaga no GadoControl está reservada!`,
+      html: buildEmail(firstName, appUrl),
     });
-
-    if (!r.ok) {
-      const err = await r.json();
-      console.error('Resend error:', err);
-      return res.status(500).json({ error: err });
-    }
 
     return res.status(200).json({ ok: true });
   } catch (e) {
@@ -56,14 +50,12 @@ function buildEmail(firstName, appUrl) {
 </head>
 <body style="margin:0;padding:0;background:#f4f6f3;font-family:'Segoe UI',Arial,sans-serif;">
 
-<!-- wrapper -->
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f3;padding:32px 16px;">
 <tr><td align="center">
 
-  <!-- card -->
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 24px rgba(0,0,0,.08);">
 
-    <!-- header verde -->
+    <!-- header -->
     <tr>
       <td style="background:#15803d;padding:36px 40px 28px;text-align:center;">
         <p style="margin:0;font-size:11px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,.55);">GESTÃO DE REBANHO</p>
@@ -88,7 +80,6 @@ function buildEmail(firstName, appUrl) {
             <td style="padding:16px;background:#f0fdf4;border-radius:12px;border-left:4px solid #15803d;">
               <p style="margin:0 0 16px;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#15803d;">O que acontece agora</p>
 
-              <!-- passo 1 -->
               <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
                 <tr>
                   <td width="32" valign="top" style="padding-top:1px;">
@@ -101,7 +92,6 @@ function buildEmail(firstName, appUrl) {
                 </tr>
               </table>
 
-              <!-- passo 2 -->
               <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
                 <tr>
                   <td width="32" valign="top" style="padding-top:1px;">
@@ -114,7 +104,6 @@ function buildEmail(firstName, appUrl) {
                 </tr>
               </table>
 
-              <!-- passo 3 -->
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td width="32" valign="top" style="padding-top:1px;">
@@ -126,7 +115,6 @@ function buildEmail(firstName, appUrl) {
                   </td>
                 </tr>
               </table>
-
             </td>
           </tr>
         </table>
@@ -149,18 +137,16 @@ function buildEmail(firstName, appUrl) {
     <tr>
       <td style="padding:20px 40px 28px;border-top:1px solid #e5e7eb;text-align:center;">
         <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.6;">
-          Voce recebeu este email porque se cadastrou em gadocontrol.com.br.<br>
+          Voce recebeu este email porque se cadastrou na lista de espera do GadoControl.<br>
           Se foi engano, pode ignorar — nao vamos te incomodar.
         </p>
       </td>
     </tr>
 
   </table>
-  <!-- /card -->
 
 </td></tr>
 </table>
-<!-- /wrapper -->
 
 </body>
 </html>`;
