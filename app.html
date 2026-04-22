@@ -2213,6 +2213,38 @@ body {
   </div>
 </div>
 
+<!-- MODAL UPGRADE -->
+<div id="m-upgrade" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#1a1a2e;border-radius:20px;max-width:420px;width:100%;padding:32px 28px;border:1px solid rgba(255,255,255,.1);box-shadow:0 24px 64px rgba(0,0,0,.5)">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:2.4rem;margin-bottom:8px">🚀</div>
+      <h2 style="color:#fff;font-size:1.3rem;font-weight:800;margin:0 0 6px">Limite do plano gratuito</h2>
+      <p style="color:rgba(255,255,255,.55);font-size:.88rem;margin:0">Você atingiu <strong id="upgrade-uso" style="color:#4ade80">50/50</strong> animais vivos no plano Free.</p>
+    </div>
+
+    <!-- comparativo -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
+      <div style="background:rgba(255,255,255,.05);border-radius:12px;padding:14px;border:1px solid rgba(255,255,255,.08)">
+        <div style="font-size:.7rem;font-weight:700;color:rgba(255,255,255,.4);letter-spacing:1px;margin-bottom:8px">GRÁTIS</div>
+        <div style="color:rgba(255,255,255,.7);font-size:.82rem;line-height:1.6">Até 50 animais vivos<br>Todas as funções<br>Offline first</div>
+        <div style="margin-top:10px;font-size:1rem;font-weight:800;color:#fff">R$ 0</div>
+      </div>
+      <div style="background:linear-gradient(135deg,rgba(74,222,128,.12),rgba(34,197,94,.06));border-radius:12px;padding:14px;border:1px solid rgba(74,222,128,.3)">
+        <div style="font-size:.7rem;font-weight:700;color:#4ade80;letter-spacing:1px;margin-bottom:8px">PRO ⭐</div>
+        <div style="color:rgba(255,255,255,.85);font-size:.82rem;line-height:1.6">Animais ilimitados<br>Todas as funções<br>Suporte prioritário</div>
+        <div style="margin-top:10px;font-size:1rem;font-weight:800;color:#4ade80">R$ 49,90<span style="font-size:.7rem;font-weight:400;color:rgba(255,255,255,.4)">/mês</span></div>
+      </div>
+    </div>
+
+    <button id="upgrade-btn" onclick="iniciarCheckout()" style="width:100%;background:#16a34a;color:#fff;border:none;border-radius:12px;padding:16px;font-size:1rem;font-weight:800;cursor:pointer;margin-bottom:10px">
+      Assinar Pro — R$ 49,90/mês
+    </button>
+    <button onclick="fecharUpgradeModal()" style="width:100%;background:transparent;color:rgba(255,255,255,.4);border:none;border-radius:12px;padding:10px;font-size:.85rem;cursor:pointer">
+      Continuar no plano gratuito
+    </button>
+  </div>
+</div>
+
 <nav id="nav-bar">
   <button class="nbtn active" onclick="navTo('dashboard')"  id="nav-dashboard"><span class="ni">🏠</span>Início</button>
   <button class="nbtn" onclick="navTo('animais')"            id="nav-animais"><span class="ni">🐄</span>Animais</button>
@@ -4569,6 +4601,13 @@ function submitAnimal() {
   };
 
   if (!eid) {
+    // Verificação do limite do plano gratuito
+    const vivosAtuais = (db.animais || []).filter(a => a.status === 'Vivo').length;
+    if (window.userPlan !== 'pro' && vivosAtuais >= PLAN_LIMIT_FREE) {
+      closeModal('m-animal');
+      abrirUpgradeModal('limite');
+      return;
+    }
     db.animais.push(animal);
     toast(`✅ Animal ${brinco} cadastrado!`);
   } else {
@@ -7968,6 +8007,10 @@ async function initFazenda(user) {
   }
 
   const userData = userSnap.exists ? userSnap.data() : null;
+
+  // Plano do usuário
+  window.userPlan = userData?.plan || 'free';
+  if (typeof checkUserPlan === 'function') checkUserPlan(user.uid);
 
   if (userData && userData.fazendaId) {
     // ── Usuário já tem fazenda ──
@@ -12195,6 +12238,109 @@ openEventoModal = function(eventoId, brincoPreset, tipoPreset) {
 window.addEventListener('load', function() {
   refreshLoteSelects();
 });
+
+// ═══════════════════════════════════════════
+// PLANOS — GadoControl Free vs Pro
+// ═══════════════════════════════════════════
+
+const PLAN_LIMIT_FREE = 50;
+window.userPlan = 'free'; // sobrescrito após login
+
+async function checkUserPlan(uid) {
+  try {
+    const r = await fetch('/api/asaas-check-plan?uid=' + encodeURIComponent(uid));
+    const data = await r.json();
+    window.userPlan = data.plan || 'free';
+  } catch(e) {
+    window.userPlan = 'free';
+  }
+}
+
+function countAnimaisVivos() {
+  try {
+    const db = getDB();
+    return (db.animais || []).filter(a => a.status === 'Vivo').length;
+  } catch(e) { return 0; }
+}
+
+function abrirUpgradeModal(contexto) {
+  const vivos = countAnimaisVivos();
+  document.getElementById('upgrade-uso').textContent = vivos + '/' + PLAN_LIMIT_FREE;
+  document.getElementById('m-upgrade').style.display = 'flex';
+}
+
+function fecharUpgradeModal() {
+  document.getElementById('m-upgrade').style.display = 'none';
+}
+
+async function iniciarCheckout() {
+  const user = _fbAuth && _fbAuth.currentUser;
+  if (!user) return;
+  const btn = document.getElementById('upgrade-btn');
+  btn.disabled = true;
+  btn.textContent = 'Aguarde...';
+  try {
+    const r = await fetch('/api/asaas-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uid: user.uid,
+        email: user.email,
+        name: user.displayName || user.email,
+      }),
+    });
+    const data = await r.json();
+    if (data.url) {
+      window.open(data.url, '_blank');
+      btn.textContent = 'Paguei, verificar plano';
+      btn.disabled = false;
+      btn.onclick = verificarPlanoPosCheckout;
+    } else {
+      btn.textContent = 'Erro — tente novamente';
+      btn.disabled = false;
+    }
+  } catch(e) {
+    btn.textContent = 'Erro — tente novamente';
+    btn.disabled = false;
+  }
+}
+
+async function verificarPlanoPosCheckout() {
+  const user = _fbAuth && _fbAuth.currentUser;
+  if (!user) return;
+  const btn = document.getElementById('upgrade-btn');
+  btn.disabled = true;
+  btn.textContent = 'Verificando...';
+  await checkUserPlan(user.uid);
+  if (window.userPlan === 'pro') {
+    // Salva plano no Firestore via Firebase SDK (token do próprio usuário)
+    try {
+      await _fbDb.doc('users/' + user.uid).update({ plan: 'pro' });
+    } catch(e) {}
+    fecharUpgradeModal();
+    toast('Plano Pro ativado! Bem-vindo ao GadoControl Pro.', 's');
+  } else {
+    btn.textContent = 'Pagamento ainda não confirmado';
+    btn.disabled = false;
+  }
+}
+
+// Detecta retorno do checkout Asaas
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('upgraded') === '1') {
+    window.history.replaceState({}, '', window.location.pathname);
+    setTimeout(async () => {
+      const user = _fbAuth && _fbAuth.currentUser;
+      if (!user) return;
+      await checkUserPlan(user.uid);
+      if (window.userPlan === 'pro') {
+        try { await _fbDb.doc('users/' + user.uid).update({ plan: 'pro' }); } catch(e) {}
+        toast('Plano Pro ativado!', 's');
+      }
+    }, 2000);
+  }
+})();
 </script>
 </body>
 </html>
