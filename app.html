@@ -9606,6 +9606,14 @@ function submitGrupo() {
       });
     }
   } else {
+    // Verifica limite do plano free (conta cabeças totais, incluindo grupos)
+    var vivos = db.animais.filter(function(a){ return a.status === 'Vivo'; });
+    var vivosAtuais = sumCabecas(vivos);
+    if (window.userPlan !== 'pro' && vivosAtuais + cabecas > PLAN_LIMIT_FREE) {
+      closeModal('m-animal');
+      abrirUpgradeModal('limite');
+      return;
+    }
     var entry = {
       id: uid(), tipo: 'grupo',
       brinco: 'GRP-' + uid().slice(0,6),
