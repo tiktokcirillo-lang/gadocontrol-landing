@@ -10783,56 +10783,74 @@ function gerarRelatorioMensal(anoParam, mesParam) {
         // Partos próximos
         if (partosProx.length > 0) {
           var prox = partosProx.slice(0,2).map(function(m){ return m.brinco+' ('+fmtDate(m.dataPrevistoParto)+')'; }).join(', ');
-          acoes.push({ prioridade:'URGENTE', texto:'Preparar maternidade: ' + partosProx.length + ' parto(s) previsto(s). Proximas: '+prox, cor:[183,28,28] });
+          acoes.push({ prioridade:'URGENTE', texto:'Preparar maternidade: ' + partosProx.length + ' parto(s) previsto(s) nos proximos 60 dias. Proximas: '+prox, cor:[183,28,28] });
         }
         // GMD abaixo da meta
         var gmdKeys3 = Object.keys(gmdPorCat);
         if (gmdKeys3.length > 0) {
           var METAS3={Bezerro:0.400,Desmamado:0.500,Novilho:0.600,Matriz:0.350,Touro:0.400};
           var abaixo = gmdKeys3.filter(function(c){ var g=gmdPorCat[c]; return (g.sum/g.count)<(METAS3[c]||0.45)*0.75; });
-          if (abaixo.length>0) acoes.push({ prioridade:'ATENCAO', texto:'GMD abaixo de 75% da meta em: '+abaixo.join(', ')+'. Revisar suplementacao e pastagem.', cor:[230,81,0] });
+          if (abaixo.length>0) acoes.push({ prioridade:'ATENCAO', texto:'GMD abaixo de 75% da meta em: '+abaixo.join(', ')+'. Revisar suplementacao e manejo de pastagem.', cor:[230,81,0] });
         }
         // Taxa de prenhez
         if (sumCabecas(matrizes)>0) {
-          var pct = Math.round(sumCabecas(prenhas)/sumCabecas(matrizes)*100);
-          if (pct<70) acoes.push({ prioridade:'ATENCAO', texto:'Taxa de prenhez baixa ('+pct+'%). Avaliar protocolo IATF e nutricao das matrizes.', cor:[230,81,0] });
+          var pct2 = Math.round(sumCabecas(prenhas)/sumCabecas(matrizes)*100);
+          if (pct2<70) acoes.push({ prioridade:'ATENCAO', texto:'Taxa de prenhez baixa ('+pct2+'%). Avaliar protocolo IATF e estado nutricional das matrizes.', cor:[230,81,0] });
         }
         // Sem pesagens no mês
-        if (pesagemMes.length===0) acoes.push({ prioridade:'ROTINA', texto:'Nenhuma pesagem registrada em '+nomeMes+'. Agendar pesagem do rebanho para monitorar GMD.', cor:AZUL });
-        // Animais sem pesagem recente
-        var semPes = vivos.filter(function(a){
-          var ultp = (db.eventos||[]).filter(function(e){ return e.brincoAnimal===a.brinco && e.tipo==='Pesagem'; })
-                      .sort(function(a,b){ return b.data.localeCompare(a.data); })[0];
-          return !ultp || diffDays(ultp.data,today())>90;
-        });
-        if (semPes.length>0 && pesagemMes.length>0) acoes.push({ prioridade:'ROTINA', texto:sumCabecas(semPes)+' cabecas sem pesagem ha mais de 90 dias. Incluir nas proximas pesagens.', cor:AZUL });
+        if (pesagemMes.length===0) {
+          acoes.push({ prioridade:'ROTINA', texto:'Nenhuma pesagem registrada em '+nomeMes+'. Agendar pesagem do rebanho para acompanhar GMD.', cor:AZUL });
+        } else {
+          // Animais sem pesagem recente (apenas se houve pesagem esse mês — senão já avisamos acima)
+          var semPes = vivos.filter(function(a){
+            var ultp = (db.eventos||[]).filter(function(e){ return e.brincoAnimal===a.brinco && e.tipo==='Pesagem'; })
+                        .sort(function(x,y){ return y.data.localeCompare(x.data); })[0];
+            return !ultp || diffDays(ultp.data,today())>90;
+          });
+          if (semPes.length>3) acoes.push({ prioridade:'ROTINA', texto:sumCabecas(semPes)+' cabecas sem pesagem ha mais de 90 dias. Incluir nas proximas pesagens para melhorar o GMD.', cor:AZUL });
+        }
         // Saldo negativo
-        if (saldo<0) acoes.push({ prioridade:'FINANCEIRO', texto:'Saldo negativo em '+nomeMes+' ('+fmtMoney(saldo)+'). Revisar estrutura de custos e oportunidades de venda.', cor:[183,28,28] });
-        // Padrão
-        acoes.push({ prioridade:'ROTINA', texto:'Continue registrando pesagens, eventos e custos mensalmente para relatórios cada vez mais completos.', cor:TEAL });
+        if (saldo<0) acoes.push({ prioridade:'FINANCEIRO', texto:'Saldo negativo em '+nomeMes+' ('+fmtMoney(saldo)+'). Revisar estrutura de custos e antecipar oportunidades de venda.', cor:[183,28,28] });
+        // Padrão sempre presente
+        acoes.push({ prioridade:'ROTINA', texto:'Continue registrando pesagens, eventos e custos mensalmente. Quanto mais dados, mais precisos ficam os relatórios e as analises de desempenho.', cor:TEAL });
 
-        var boxH = 13 + acoes.length * 11 + 4;
-        curY = chkPage(curY, boxH + 12);
-        // Header verde escuro
+        // Sempre começa numa nova página para evitar sobreposição
+        doc.addPage(); curY = 15;
+
+        // Header da seção
         doc.setFillColor(27,94,32); doc.rect(M, curY, CW, 7,'F');
         doc.setTextColor.apply(doc,BRNCO); doc.setFontSize(9.5); doc.setFont('helvetica','bold');
         doc.text('7. ACOES RECOMENDADAS PARA ' + (mes<12?MESES_PT[mes]:MESES_PT[0]).toUpperCase(), M+3, curY+5);
-        doc.setTextColor.apply(doc,TEXTO); curY+=10;
+        doc.setTextColor.apply(doc,TEXTO); curY += 12;
 
-        acoes.forEach(function(a,i){
-          var ay = curY + i*11;
-          // Badge de prioridade
-          doc.setFillColor.apply(doc,a.cor); doc.roundedRect(M, ay, 22, 6, 1,1,'F');
-          doc.setTextColor.apply(doc,BRNCO); doc.setFontSize(6); doc.setFont('helvetica','bold');
-          doc.text(a.prioridade, M+11, ay+4.3, {align:'center'});
-          // Texto da ação
-          doc.setTextColor.apply(doc,TEXTO); doc.setFont('helvetica','normal'); doc.setFontSize(8);
-          var linhas = doc.splitTextToSize(a.texto, CW-27);
-          doc.text(linhas, M+25, ay+4.3);
-          // Linha separadora
-          if(i<acoes.length-1){ doc.setDrawColor(220,220,220); doc.setLineWidth(0.3); doc.line(M, ay+9, M+CW, ay+9); }
+        // Cada item calcula a própria altura com base no texto quebrado
+        acoes.forEach(function(a, i) {
+          doc.setFontSize(8); doc.setFont('helvetica','normal');
+          var linhas = doc.splitTextToSize(a.texto, CW - 28);
+          var itemH  = Math.max(8, linhas.length * 5 + 5);
+          curY = chkPage(curY, itemH + 4);
+
+          // Badge colorido
+          doc.setFillColor.apply(doc, a.cor);
+          doc.roundedRect(M, curY, 23, 6.5, 1.5, 1.5, 'F');
+          doc.setTextColor.apply(doc, BRNCO);
+          doc.setFontSize(5.8); doc.setFont('helvetica','bold');
+          doc.text(a.prioridade, M + 11.5, curY + 4.4, {align:'center'});
+
+          // Texto ao lado do badge (alinhado ao topo do badge)
+          doc.setTextColor.apply(doc, TEXTO);
+          doc.setFontSize(8); doc.setFont('helvetica','normal');
+          doc.text(linhas, M + 26, curY + 4.8);
+
+          // Linha separadora abaixo do item
+          curY += itemH + 2;
+          if (i < acoes.length - 1) {
+            doc.setDrawColor(210,210,210); doc.setLineWidth(0.25);
+            doc.line(M, curY, M + CW, curY);
+            curY += 3;
+          }
         });
-        curY += acoes.length*11 + 6;
+        curY += 4;
       })();
 
       addFooter();
