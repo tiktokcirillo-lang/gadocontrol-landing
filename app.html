@@ -8537,7 +8537,17 @@ function authGoogle() {
   if (!_fbAuth) return;
   authSetErr('');
   const provider = new firebase.auth.GoogleAuthProvider();
-  _fbAuth.signInWithPopup(provider).catch(err => {
+  _fbAuth.signInWithPopup(provider).then(result => {
+    // Envia email de boas-vindas apenas para novos usuários
+    if (result.additionalUserInfo?.isNewUser) {
+      const u = result.user;
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: u.email, name: u.displayName || u.email, uid: u.uid }),
+      }).catch(() => {});
+    }
+  }).catch(err => {
     if (err.code === 'auth/popup-blocked') {
       _fbAuth.signInWithRedirect(provider);
     } else {
@@ -8562,6 +8572,12 @@ function authEmailSubmit() {
       .then(cred => {
         const u = cred.user;
         const p = name ? u.updateProfile({ displayName: name }) : Promise.resolve();
+        // Dispara email de boas-vindas em background (não bloqueia o fluxo)
+        p.then(() => fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: u.email, name: name || u.email, uid: u.uid }),
+        }).catch(() => {}));
         return p.then(() => u.sendEmailVerification());
       })
       .then(() => toast('✅ Conta criada! Verifique seu e-mail para confirmar.', 's'))
