@@ -5,7 +5,7 @@
 //  Cache-First para assets estáticos.
 // ═══════════════════════════════════════════
 
-const CACHE = 'gadocontrol-v4.2';
+const CACHE = 'gadocontrol-v4.3';
 
 const STATIC_FILES = [
   './manifest.json',
@@ -41,6 +41,8 @@ self.addEventListener('fetch', event => {
   // HTML principal: Network-First (sempre tenta buscar versão nova)
   // Se offline, serve do cache
   const isHTML = url.pathname === '/' ||
+                 url.pathname === '/app' ||
+                 url.pathname === '/obrigado' ||
                  url.pathname.endsWith('.html') ||
                  url.pathname === '';
 
