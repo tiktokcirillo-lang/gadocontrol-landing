@@ -1792,13 +1792,12 @@ body {
   <div class="sub-tabs" id="rel-tabs">
     <button class="stab active" onclick="switchRelTab('mensal')" id="rstab-mensal">📋 Mensal</button>
     <button class="stab" onclick="switchRelTab('financeiro')" id="rstab-financeiro">📈 Análise</button>
+    <button class="stab" onclick="switchRelTab('dre')" id="rstab-dre">📊 DRE</button>
     <button class="stab" onclick="switchRelTab('gmd')" id="rstab-gmd">⚡ GMD</button>
     <button class="stab" onclick="switchRelTab('sanitario')" id="rstab-sanitario">🗓️ Sanitário</button>
     <button class="stab" onclick="switchRelTab('zootecnicos')" id="rstab-zootecnicos">📊 Índices</button>
-    <button class="stab stab-sec" onclick="switchRelTab('custos')" id="rstab-custos">🧾 Custos</button>
     <button class="stab stab-sec" onclick="switchRelTab('curvas')" id="rstab-curvas">📈 Curvas</button>
     <button class="stab stab-sec" onclick="switchRelTab('previsao')" id="rstab-previsao">🔮 Previsão</button>
-    <button class="stab stab-sec" onclick="switchRelTab('dre')" id="rstab-dre">📊 DRE</button>
     <button class="stab stab-more-btn" id="rel-more-btn" onclick="toggleRelMore()">+ Ver mais</button>
   </div>
 
@@ -1869,43 +1868,7 @@ body {
     </div>
   </div><!-- /rtab-mensal -->
 
-  <!-- TAB: CUSTOS -->
-  <div class="stab-content" id="rtab-custos">
-    <div class="row-btns">
-      <button class="btn btn-s" onclick="openEventoModal(null,null,'Custo / Despesa')">+ Registrar Custo</button>
-      <button class="btn btn-o btn-sm" onclick="abrirEstoque()">💊 Estoque de Medicamentos</button>
-    </div>
-
-    <!-- ESTOQUE DE MEDICAMENTOS -->
-    <div class="gestao-bloco" id="bloco-estoque" style="display:none">
-      <div class="gestao-bloco-hdr">
-        <h2>💊 Estoque de Medicamentos</h2>
-        <button class="btn btn-g btn-sm" onclick="fecharEstoque()">✕</button>
-      </div>
-      <div class="gestao-bloco-body">
-        <div class="row-btns" style="margin-bottom:10px">
-          <button class="btn btn-p btn-sm" onclick="abrirModalEstoque(null)">+ Adicionar Produto</button>
-        </div>
-        <div id="estoque-lista"></div>
-      </div>
-    </div>
-
-    <div class="sec-title">🧾 Custos de Produção</div>
-    <div class="custo-grid" id="custo-grid"></div>
-    <div class="chart-card">
-      <h3>📊 Custos por Categoria</h3>
-      <div class="custo-bar-wrap" id="custo-barras"></div>
-    </div>
-    <div class="chart-card">
-      <h3>📋 Histórico de Custos</h3>
-      <div class="tbl-wrap">
-        <table class="vendas-table">
-          <thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Animais</th><th>Total (R$)</th><th>R$/Cab.</th></tr></thead>
-          <tbody id="custo-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+  <!-- rtab-custos removido — conteúdo migrado para DRE e Financeiro -->
 
   <!-- TAB: CALENDÁRIO SANITÁRIO -->
   <div class="stab-content" id="rtab-sanitario">
@@ -1944,15 +1907,18 @@ body {
   <!-- TAB: DRE -->
   <div class="stab-content" id="rtab-dre">
     <div class="sec-title">📊 DRE — Demonstração do Resultado</div>
-    <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
-      <label style="color:var(--text2);font-size:.82rem">Período:</label>
-      <select id="dre-periodo" onchange="renderDRE()" style="background:var(--card);border:1px solid var(--border);color:var(--text1);border-radius:8px;padding:6px 12px;font-size:.82rem">
-        <option value="mes">Este mês</option>
-        <option value="trim">Últimos 3 meses</option>
-        <option value="sem">Últimos 6 meses</option>
-        <option value="ano" selected>Este ano</option>
-        <option value="tudo">Todo o período</option>
-      </select>
+    <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap;justify-content:space-between">
+      <div style="display:flex;gap:8px;align-items:center">
+        <label style="color:var(--text2);font-size:.82rem">Período:</label>
+        <select id="dre-periodo" onchange="renderDRE()" style="background:var(--card);border:1px solid var(--border);color:var(--text1);border-radius:8px;padding:6px 12px;font-size:.82rem">
+          <option value="mes">Este mês</option>
+          <option value="trim">Últimos 3 meses</option>
+          <option value="sem">Últimos 6 meses</option>
+          <option value="ano" selected>Este ano</option>
+          <option value="tudo">Todo o período</option>
+        </select>
+      </div>
+      <button class="btn btn-s btn-sm" onclick="openEventoModal(null,null,'Custo / Despesa')">+ Registrar Custo</button>
     </div>
     <div id="dre-content"></div>
   </div>
@@ -10926,7 +10892,7 @@ function switchRelTab(tab) {
   document.querySelectorAll('#sec-relatorios .stab').forEach(function(b){ b.classList.remove('active'); });
   document.querySelectorAll('#sec-relatorios .stab-content').forEach(function(c){ c.classList.remove('active'); });
   // Se a tab é secundária, expande o grupo antes de ativá-la
-  var secTabs = ['custos','curvas','previsao'];
+  var secTabs = ['curvas','previsao'];
   if (secTabs.indexOf(tab) !== -1) {
     document.querySelectorAll('#sec-relatorios .stab-sec').forEach(function(t){ t.classList.add('visible'); });
     var moreBtn = document.getElementById('rel-more-btn');
@@ -10938,7 +10904,6 @@ function switchRelTab(tab) {
   if (tabEl) tabEl.classList.add('active');
   if (tab === 'financeiro')  renderRelatorios();
   if (tab === 'zootecnicos') renderIndicesZootecnicos();
-  if (tab === 'custos')      renderCustos();
   if (tab === 'sanitario')   renderCalendarioSanitario();
   if (tab === 'curvas')      { populateCurvaSelect(); renderCurvaAnimal(); }
   if (tab === 'previsao')    renderPrevisaoReceita(getDB());
