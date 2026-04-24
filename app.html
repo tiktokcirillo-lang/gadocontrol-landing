@@ -12321,26 +12321,43 @@ function fecharModalPDF() {
 }
 
 function updateTrialBadge() {
-  let badge = document.getElementById('trial-badge');
+  const actions = document.querySelector('.hdr-actions');
+  if (!actions) return;
+
+  // Remove versão Pro paga: remove tudo
   if (window.userPlan === 'pro' && !window.inTrial) {
-    if (badge) badge.remove();
+    const b = document.getElementById('trial-badge');
+    const u = document.getElementById('upgrade-hdr-btn');
+    if (b) b.remove();
+    if (u) u.remove();
     return;
   }
+
+  // Badge de dias restantes (contador)
+  let badge = document.getElementById('trial-badge');
   if (!badge) {
-    badge = document.createElement('button');
+    badge = document.createElement('span');
     badge.id = 'trial-badge';
-    badge.onclick = abrirUpgradeModal;
-    badge.style.cssText = 'background:rgba(212,168,71,.18);border:1px solid rgba(212,168,71,.4);color:#f0c96e;border-radius:20px;padding:4px 10px;font-size:.68rem;font-weight:800;cursor:pointer;white-space:nowrap;font-family:inherit';
-    const actions = document.querySelector('.hdr-actions');
-    if (actions) actions.prepend(badge);
+    badge.style.cssText = 'color:#f0c96e;font-size:.65rem;font-weight:800;white-space:nowrap;padding:0 2px';
+    actions.prepend(badge);
   }
+
+  // Botão "Assinar Pro" sempre visível para não-pro
+  let upgradeBtn = document.getElementById('upgrade-hdr-btn');
+  if (!upgradeBtn) {
+    upgradeBtn = document.createElement('button');
+    upgradeBtn.id = 'upgrade-hdr-btn';
+    upgradeBtn.onclick = abrirUpgradeModal;
+    upgradeBtn.style.cssText = 'background:#16a34a;border:none;color:#fff;border-radius:20px;padding:5px 12px;font-size:.68rem;font-weight:800;cursor:pointer;white-space:nowrap;font-family:inherit';
+    upgradeBtn.textContent = '⭐ Assinar Pro';
+    actions.prepend(upgradeBtn);
+  }
+
   if (window.inTrial) {
-    badge.textContent = `Beta: ${window.trialDaysLeft}d restantes`;
+    badge.textContent = `Beta: ${window.trialDaysLeft}d · `;
   } else {
-    badge.textContent = 'Free · 30 animais';
-    badge.style.background = 'rgba(255,255,255,.08)';
-    badge.style.borderColor = 'rgba(255,255,255,.2)';
-    badge.style.color       = 'rgba(255,255,255,.6)';
+    badge.textContent = 'Free · 30 animais · ';
+    badge.style.color = 'rgba(255,255,255,.5)';
   }
 }
 
