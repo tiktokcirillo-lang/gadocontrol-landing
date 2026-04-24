@@ -15,7 +15,7 @@ module.exports = async function handler(req, res) {
   if (!email) return res.status(400).json({ error: 'Email obrigatório' });
 
   const firstName = (nome || 'Produtor').split(' ')[0];
-  const appUrl = process.env.APP_URL || 'https://gadocontrol-landing.vercel.app/app';
+  const appUrl = process.env.APP_URL || 'https://gadocontrole.com/app';
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -98,8 +98,8 @@ function buildEmail(firstName, appUrl) {
                     <div style="width:24px;height:24px;background:#15803d;border-radius:50%;text-align:center;line-height:24px;font-size:11px;font-weight:800;color:#fff;">2</div>
                   </td>
                   <td style="padding-left:10px;">
-                    <p style="margin:0;font-size:14px;font-weight:700;color:#111827;">Teste por 14 dias</p>
-                    <p style="margin:2px 0 0;font-size:13px;color:#6b7280;">Sem cartao, sem fidelidade. Use tudo e veja o que faz sentido para sua fazenda.</p>
+                    <p style="margin:0;font-size:14px;font-weight:700;color:#111827;">Teste por 60 dias</p>
+                    <p style="margin:2px 0 0;font-size:13px;color:#6b7280;">Sem cartao, sem fidelidade. Use tudo durante 60 dias e veja o que faz sentido para sua fazenda.</p>
                   </td>
                 </tr>
               </table>

@@ -54,6 +54,9 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   --radius-md:    14px;
   --shadow-lg:    0 8px 32px rgba(0,0,0,0.22);
   --header-bg:    linear-gradient(135deg,#2D6A2F 0%,#1B5E20 100%);
+  /* aliases para compatibilidade de componentes mais novos */
+  --card:         var(--surface);
+  --text1:        var(--text);
 }
 [data-theme="dark"] {
   --bg:           #111612;
@@ -84,6 +87,9 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   --roxo-bg:      #1A0A2E;
   --shadow-lg:    0 8px 32px rgba(0,0,0,0.55);
   --header-bg:    linear-gradient(135deg,#1B3A1C 0%,#0D220E 100%);
+  /* aliases para compatibilidade de componentes mais novos */
+  --card:         var(--surface);
+  --text1:        var(--text);
 }
 
 /* ═══════════════════════════════════════════
@@ -4657,8 +4663,8 @@ function submitAnimal() {
   };
 
   if (!eid) {
-    // Verificação do limite do plano gratuito
-    const vivosAtuais = (db.animais || []).filter(a => a.status === 'Vivo').length;
+    // Verificação do limite do plano gratuito (conta cabeças totais, incluindo grupos)
+    const vivosAtuais = sumCabecas((db.animais || []).filter(a => a.status === 'Vivo'));
     if (window.userPlan !== 'pro' && vivosAtuais >= PLAN_LIMIT_FREE) {
       closeModal('m-animal');
       abrirUpgradeModal('limite');
@@ -8231,9 +8237,14 @@ async function initFazenda(user) {
   // Exibe badge de dias restantes no header
   if (window.userPlan !== 'pro' || window.inTrial) updateTrialBadge();
 
-  // Asaas: verifica assinatura ativa em background
+  // Asaas: verifica assinatura ativa em background e persiste no Firestore se pro
   if (window.userPlan !== 'pro') {
-    checkUserPlan(user.uid).then(() => { if (window.userPlan === 'pro') updateTrialBadge(); });
+    checkUserPlan(user.uid).then(async () => {
+      if (window.userPlan === 'pro') {
+        updateTrialBadge();
+        try { await _fbDb.doc('users/' + user.uid).update({ plan: 'pro' }); } catch(e) {}
+      }
+    });
   }
 
   if (userData && userData.fazendaId) {
@@ -12563,22 +12574,25 @@ async function checkUserPlan(uid) {
   try {
     const r = await fetch('/api/asaas-check-plan?uid=' + encodeURIComponent(uid));
     const data = await r.json();
-    window.userPlan = data.plan || 'free';
+    // Só atualiza se veio resposta válida — não rebaixa em caso de erro de rede
+    if (data && data.plan) window.userPlan = data.plan;
   } catch(e) {
-    window.userPlan = 'free';
+    // Falha silenciosa: mantém o status atual do usuário (não rebaixa para 'free')
+    console.warn('[GadoControl] checkUserPlan falhou, mantendo status atual:', e.message);
   }
 }
 
 function countAnimaisVivos() {
   try {
     const db = getDB();
-    return (db.animais || []).filter(a => a.status === 'Vivo').length;
+    return sumCabecas((db.animais || []).filter(a => a.status === 'Vivo'));
   } catch(e) { return 0; }
 }
 
 function abrirUpgradeModal(contexto) {
   const vivos = countAnimaisVivos();
-  document.getElementById('upgrade-uso').textContent = vivos + '/' + PLAN_LIMIT_FREE;
+  const usoEl = document.getElementById('upgrade-uso');
+  if (usoEl) usoEl.textContent = vivos + '/' + PLAN_LIMIT_FREE;
 
   // Ajusta título do modal dependendo do contexto
   const titulo = document.getElementById('upgrade-titulo');
@@ -12655,15 +12669,28 @@ async function verificarPlanoPosCheckout() {
   const params = new URLSearchParams(window.location.search);
   if (params.get('upgraded') === '1') {
     window.history.replaceState({}, '', window.location.pathname);
-    setTimeout(async () => {
-      const user = _fbAuth && _fbAuth.currentUser;
+    // Aguarda o Firebase Auth estar pronto antes de verificar o plano
+    const verificarAposAuth = async (user) => {
       if (!user) return;
       await checkUserPlan(user.uid);
       if (window.userPlan === 'pro') {
         try { await _fbDb.doc('users/' + user.uid).update({ plan: 'pro' }); } catch(e) {}
-        toast('Plano Pro ativado!', 's');
+        updateTrialBadge();
+        toast('Plano Pro ativado! Bem-vindo ao GadoControl Pro. 🎉', 's');
       }
-    }, 2000);
+    };
+    // Se auth já está resolvida, usa diretamente; caso contrário aguarda
+    if (_fbAuth && _fbAuth.currentUser) {
+      verificarAposAuth(_fbAuth.currentUser);
+    } else if (_fbAuth) {
+      const unsub = _fbAuth.onAuthStateChanged(user => {
+        unsub();
+        verificarAposAuth(user);
+      });
+    } else {
+      // Firebase ainda não inicializado — tenta após 3s como fallback
+      setTimeout(() => verificarAposAuth(_fbAuth && _fbAuth.currentUser), 3000);
+    }
   }
 })();
 </script>
