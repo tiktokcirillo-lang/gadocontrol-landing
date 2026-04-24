@@ -2912,17 +2912,47 @@ body {
      MODAL: MAPA DE PIQUETES
      ═══════════════════════════════════════════ -->
 <div class="moverlay" id="m-mapa">
-<div class="modal" style="max-width:640px">
+<div class="modal" style="max-width:660px">
   <div class="mhdr">
     <h2>🗺️ Mapa dos Piquetes</h2>
     <button class="mclose" onclick="closeModal('m-mapa')">✕</button>
   </div>
-  <div class="mbody" style="padding:10px">
-    <canvas id="ch-mapa" style="width:100%;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border)" height="360"></canvas>
-    <div id="mapa-legenda" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;font-size:.75rem"></div>
+  <div class="mbody" style="padding:12px">
+    <div id="mapa-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px"></div>
+    <div id="mapa-vazio" style="display:none;text-align:center;padding:40px;color:var(--text3);font-size:.88rem">
+      Nenhum lote cadastrado.<br>Cadastre piquetes na aba Reprodução → Lotes.
+    </div>
   </div>
   <div class="mfooter">
     <button class="btn btn-g" onclick="closeModal('m-mapa')">Fechar</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL: MOVER ANIMAIS ENTRE PIQUETES -->
+<div class="moverlay" id="m-mover-lote">
+<div class="modal" style="max-width:400px">
+  <div class="mhdr">
+    <h2>↔ Mover Animais</h2>
+    <button class="mclose" onclick="closeModal('m-mover-lote')">✕</button>
+  </div>
+  <div class="mbody">
+    <div class="fg">
+      <label>De (piquete atual)</label>
+      <select id="mover-de" onchange="renderMoverAnimaisList()"></select>
+    </div>
+    <div class="fg">
+      <label>Para (destino)</label>
+      <select id="mover-para"></select>
+    </div>
+    <div class="fg">
+      <label>Animais para mover</label>
+      <div id="mover-animais-list" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px"></div>
+    </div>
+  </div>
+  <div class="mfooter">
+    <button class="btn btn-g" onclick="closeModal('m-mover-lote')">Cancelar</button>
+    <button class="btn btn-p" onclick="executarMoverAnimais()">↔ Mover</button>
   </div>
 </div>
 </div>
@@ -6809,89 +6839,148 @@ function renderComparativo() {
 // ═══════════════════════════════════════════
 function abrirMapaPiquetes() {
   openModal('m-mapa');
-  requestAnimationFrame(desenharMapa);
+  renderMapaPiquetes();
 }
 
-function desenharMapa() {
-  const canvas = document.getElementById('ch-mapa');
-  if (!canvas) return;
+function renderMapaPiquetes() {
   const db    = getDB();
   const lotes = db.lotes || [];
-  const vivos = db.animais.filter(a=>a.status==='Vivo');
-
-  canvas.width  = canvas.offsetWidth || 560;
-  canvas.height = 360;
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width, h = canvas.height;
-  const pad = 16;
-  const bg  = getComputedVar('--bg');
-  const textC= getComputedVar('--text');
-  const text2= getComputedVar('--text2');
-  const bord = getComputedVar('--border');
-  const verde= getComputedVar('--verde');
-  const amar = getComputedVar('--amarelo');
-  const verm = getComputedVar('--vermelho');
-
-  ctx.clearRect(0,0,w,h);
-  ctx.fillStyle=bg; ctx.fillRect(0,0,w,h);
+  const vivos = db.animais.filter(a => a.status === 'Vivo');
+  const grid  = document.getElementById('mapa-grid');
+  const vazio = document.getElementById('mapa-vazio');
+  if (!grid) return;
 
   if (lotes.length === 0) {
-    ctx.fillStyle=text2; ctx.font='13px Nunito,sans-serif'; ctx.textAlign='center';
-    ctx.fillText('Nenhum lote cadastrado. Cadastre piquetes na aba Lotes.', w/2, h/2);
+    grid.style.display  = 'none';
+    vazio.style.display = 'block';
     return;
   }
+  grid.style.display  = 'grid';
+  vazio.style.display = 'none';
 
-  // Layout em grid automático
-  const cols  = Math.ceil(Math.sqrt(lotes.length));
-  const rows  = Math.ceil(lotes.length/cols);
-  const cW    = (w - pad*2) / cols;
-  const cH    = (h - pad*2 - 40) / rows; // 40px para legenda
-  const leg   = document.getElementById('mapa-legenda');
-  if (leg) leg.innerHTML = '';
+  grid.innerHTML = lotes.map(l => {
+    const anim    = vivos.filter(a => a.loteId === l.id);
+    const nAnim   = anim.length;
+    const cap     = l.capacidade || 0;
+    const area    = parseFloat(l.area) || 0;
+    const lotPct  = cap ? nAnim / cap : 0;
 
-  lotes.forEach((l,i) => {
-    const col = i % cols, row = Math.floor(i/cols);
-    const x   = pad + col*cW + 4, y = pad + row*cH + 4;
-    const bw  = cW-8, bh = cH-8;
-    const anim = vivos.filter(a=>a.loteId===l.id);
-    const lotacao = l.capacidade ? anim.length/l.capacidade : 0;
-    const cor = l.capacidade===undefined ? verde : lotacao > 0.9 ? verm : lotacao > 0.6 ? amar : verde;
+    // UA/ha — 1 UA = 450 kg
+    const totalPeso = anim.reduce((s,a) => s + (parseFloat(a.pesoAtual)||400), 0);
+    const ua        = totalPeso / 450;
+    const uaHa      = area > 0 ? (ua / area).toFixed(1) : null;
 
-    // Fundo piquete
-    ctx.beginPath(); ctx.roundRect(x,y,bw,bh,8);
-    ctx.fillStyle = cor+'22'; ctx.fill();
-    ctx.strokeStyle = cor; ctx.lineWidth=2; ctx.stroke();
-
-    // Ícone
-    ctx.font = bh>80 ? '24px sans-serif' : '16px sans-serif';
-    ctx.textAlign='center';
-    ctx.fillText(l.tipo==='Confinamento'?'🏗️':'🌿', x+bw/2, y+bh*0.32);
-
-    // Nome
-    ctx.fillStyle=textC; ctx.font=`bold ${Math.min(12,bw/l.nome.length*1.6)}px Oswald,sans-serif`;
-    ctx.fillText(l.nome.length>14?l.nome.substring(0,13)+'…':l.nome, x+bw/2, y+bh*0.55);
-
-    // Animais
-    ctx.fillStyle=text2; ctx.font=`${Math.min(11,bh*0.16)}px Nunito,sans-serif`;
-    ctx.fillText(`${anim.length}${l.capacidade?'/'+l.capacidade:''} 🐄`, x+bw/2, y+bh*0.72);
-    if (l.area) ctx.fillText(`${l.area} ha`, x+bw/2, y+bh*0.88);
-
-    // Lotação barra
-    if (l.capacidade) {
-      const bx=x+6, by=y+bh-8, barW=bw-12, pct=Math.min(lotacao,1);
-      ctx.fillStyle=bord; ctx.beginPath(); ctx.roundRect(bx,by,barW,4,2); ctx.fill();
-      ctx.fillStyle=cor;  ctx.beginPath(); ctx.roundRect(bx,by,barW*pct,4,2); ctx.fill();
+    // Status e cor
+    let status, statusColor, borderColor, bgColor;
+    if (l.status === 'descanso') {
+      status = '💤 Descanso'; statusColor = '#94a3b8';
+      borderColor = 'rgba(148,163,184,.4)'; bgColor = 'rgba(148,163,184,.08)';
+    } else if (nAnim === 0) {
+      status = '🟢 Vazio'; statusColor = '#4ade80';
+      borderColor = 'rgba(74,222,128,.4)'; bgColor = 'rgba(74,222,128,.06)';
+    } else if (cap && lotPct > 0.9) {
+      status = '🔴 Superlotado'; statusColor = '#f87171';
+      borderColor = 'rgba(248,113,113,.5)'; bgColor = 'rgba(248,113,113,.08)';
+    } else if (cap && lotPct > 0.65) {
+      status = '🟡 No limite'; statusColor = '#facc15';
+      borderColor = 'rgba(250,204,21,.4)'; bgColor = 'rgba(250,204,21,.07)';
+    } else {
+      status = '🟢 Ocupado'; statusColor = '#4ade80';
+      borderColor = 'rgba(74,222,128,.4)'; bgColor = 'rgba(74,222,128,.08)';
     }
 
-    // Legenda
-    if (leg) {
-      const span = document.createElement('span');
-      span.style.cssText=`display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;border:1px solid ${cor};color:${cor};font-weight:700;`;
-      span.innerHTML=`<span style="width:8px;height:8px;border-radius:50%;background:${cor};display:inline-block"></span>${l.nome}: ${anim.length} animais`;
-      leg.appendChild(span);
-    }
-  });
+    const barPct  = cap ? Math.min(lotPct * 100, 100).toFixed(0) : 0;
+    const ico     = l.tipo === 'Confinamento' ? '🏗️' : '🌿';
+
+    return `
+    <div style="background:${bgColor};border:1.5px solid ${borderColor};border-radius:14px;padding:14px 12px;display:flex;flex-direction:column;gap:6px;position:relative">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="font-size:.62rem;font-weight:700;color:${statusColor};letter-spacing:.5px">${status}</div>
+        <div style="font-size:1.2rem">${ico}</div>
+      </div>
+
+      <div style="font-size:.95rem;font-weight:800;color:var(--text1);line-height:1.2">${l.nome}</div>
+      <div style="font-size:.7rem;color:var(--text3)">${l.tipo || 'Pastagem'}${area ? ' · ' + area + ' ha' : ''}</div>
+
+      <div style="display:flex;justify-content:space-between;margin-top:4px">
+        <div style="text-align:center">
+          <div style="font-size:1.1rem;font-weight:800;color:var(--text1)">${nAnim}${cap ? '<span style="font-size:.7rem;color:var(--text3)"> /'+cap+'</span>' : ''}</div>
+          <div style="font-size:.62rem;color:var(--text3)">animais</div>
+        </div>
+        ${uaHa !== null ? `<div style="text-align:center">
+          <div style="font-size:1.1rem;font-weight:800;color:${statusColor}">${uaHa}</div>
+          <div style="font-size:.62rem;color:var(--text3)">UA/ha</div>
+        </div>` : ''}
+        ${area ? `<div style="text-align:center">
+          <div style="font-size:1.1rem;font-weight:800;color:var(--text1)">${area}</div>
+          <div style="font-size:.62rem;color:var(--text3)">ha</div>
+        </div>` : ''}
+      </div>
+
+      ${cap ? `<div style="margin-top:4px">
+        <div style="background:rgba(255,255,255,.1);border-radius:4px;height:4px;overflow:hidden">
+          <div style="width:${barPct}%;height:100%;background:${statusColor};border-radius:4px;transition:width .3s"></div>
+        </div>
+        <div style="font-size:.6rem;color:var(--text3);margin-top:2px;text-align:right">${barPct}% da capacidade</div>
+      </div>` : ''}
+
+      <button onclick="abrirMoverAnimais('${l.id}')" style="margin-top:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:var(--text2);border-radius:8px;padding:6px;font-size:.72rem;cursor:pointer;font-family:inherit;font-weight:700">↔ Mover animais</button>
+    </div>`;
+  }).join('');
 }
+
+// Função de compatibilidade — canvas não é mais usado
+function desenharMapa() { renderMapaPiquetes(); }
+
+// ── Mover animais entre piquetes ──
+function abrirMoverAnimais(loteId) {
+  const db    = getDB();
+  const lotes = db.lotes || [];
+  const selDe   = document.getElementById('mover-de');
+  const selPara = document.getElementById('mover-para');
+  if (!selDe || !selPara) return;
+
+  selDe.innerHTML   = lotes.map(l => `<option value="${l.id}" ${l.id===loteId?'selected':''}>${l.nome}</option>`).join('');
+  selPara.innerHTML = lotes.map(l => `<option value="${l.id}" ${l.id!==loteId?'':'disabled'}>${l.nome}</option>`).join('');
+  renderMoverAnimaisList();
+  openModal('m-mover-lote');
+}
+
+function renderMoverAnimaisList() {
+  const db    = getDB();
+  const loteId = document.getElementById('mover-de')?.value;
+  const vivos  = (db.animais||[]).filter(a => a.status === 'Vivo' && a.loteId === loteId);
+  const el     = document.getElementById('mover-animais-list');
+  if (!el) return;
+
+  if (!vivos.length) {
+    el.innerHTML = '<div style="color:var(--text3);font-size:.82rem;padding:8px">Nenhum animal neste piquete.</div>';
+    return;
+  }
+  el.innerHTML = vivos.map(a => `
+    <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--border);cursor:pointer">
+      <input type="checkbox" value="${a.id}" style="width:16px;height:16px">
+      <span style="font-size:.82rem"><b>${a.brinco}</b> — ${a.categoria} ${a.pesoAtual ? '· ' + a.pesoAtual + 'kg' : ''}</span>
+    </label>`).join('');
+}
+
+function executarMoverAnimais() {
+  const db     = getDB();
+  const para   = document.getElementById('mover-para')?.value;
+  const checks = document.querySelectorAll('#mover-animais-list input[type=checkbox]:checked');
+  if (!para || !checks.length) { toast('Selecione animais e destino.', 'w'); return; }
+
+  const ids = Array.from(checks).map(c => c.value);
+  ids.forEach(id => {
+    const a = (db.animais||[]).find(x => x.id === id);
+    if (a) a.loteId = para;
+  });
+  saveDB(db);
+  toast(`${ids.length} animal(is) movido(s)!`, 's');
+  closeModal('m-mover-lote');
+  renderMapaPiquetes();
+}
+
 
 // ═══════════════════════════════════════════
 // CARÊNCIA DE MEDICAMENTOS
