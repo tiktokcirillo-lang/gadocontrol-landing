@@ -42,7 +42,7 @@ module.exports = async function handler(req, res) {
 
   // 2. Cria assinatura
   const nextDueDate = new Date().toISOString().split('T')[0];
-  const returnUrl   = 'https://gadocontrol.vercel.app/app?upgraded=1';
+  const returnUrl   = 'https://gadocontrole.com/app?upgraded=1';
 
   try {
     const subRes = await fetch(`${BASE}/subscriptions`, {
