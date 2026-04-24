@@ -910,6 +910,19 @@ button{font-family:'Nunito',sans-serif;}
 .stab.stab-more-btn{background:transparent;border-color:var(--border);color:var(--text3);font-size:.72rem;padding:7px 10px;}
 .stab-content{display:none;}
 .stab-content.active{display:block;}
+/* DRE */
+.dre-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 16px;margin-bottom:12px}
+.dre-section-title{font-size:.7rem;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin:12px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.dre-section-title.rec{color:var(--verde)}
+.dre-section-title.desp{color:#f87171}
+.dre-row{display:flex;justify-content:space-between;align-items:center;padding:5px 2px;border-bottom:1px solid rgba(255,255,255,.04)}
+.dre-cat{font-size:.82rem;color:var(--text2)}
+.dre-val{font-size:.85rem;font-weight:700;font-family:'Oswald',sans-serif}
+.dre-val.rec{color:var(--verde)}
+.dre-val.desp{color:#f87171}
+.dre-subtotal{background:rgba(255,255,255,.05);border-radius:6px;padding:8px 6px;margin-top:6px;border-bottom:none!important}
+.dre-divider{height:1px;background:var(--border);margin:14px 0}
+.dre-resultado{background:rgba(255,255,255,.07);border-radius:8px;padding:12px 8px;margin-top:10px;border-bottom:none!important}
 
 /* ═══ ANIMAL MODE TOGGLE ═══ */
 .animal-mode-bar{display:flex;gap:0;background:var(--surface2);border-radius:var(--radius-sm);padding:3px;margin-bottom:6px;border:1px solid var(--border);}
@@ -1785,6 +1798,7 @@ body {
     <button class="stab stab-sec" onclick="switchRelTab('custos')" id="rstab-custos">🧾 Custos</button>
     <button class="stab stab-sec" onclick="switchRelTab('curvas')" id="rstab-curvas">📈 Curvas</button>
     <button class="stab stab-sec" onclick="switchRelTab('previsao')" id="rstab-previsao">🔮 Previsão</button>
+    <button class="stab stab-sec" onclick="switchRelTab('dre')" id="rstab-dre">📊 DRE</button>
     <button class="stab stab-more-btn" id="rel-more-btn" onclick="toggleRelMore()">+ Ver mais</button>
   </div>
 
@@ -1925,6 +1939,22 @@ body {
       <h3>📋 Animais — Prontos ou Quase Prontos para Venda</h3>
       <div id="previsao-lista"></div>
     </div>
+  </div>
+
+  <!-- TAB: DRE -->
+  <div class="stab-content" id="rtab-dre">
+    <div class="sec-title">📊 DRE — Demonstração do Resultado</div>
+    <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
+      <label style="color:var(--text2);font-size:.82rem">Período:</label>
+      <select id="dre-periodo" onchange="renderDRE()" style="background:var(--card);border:1px solid var(--border);color:var(--text1);border-radius:8px;padding:6px 12px;font-size:.82rem">
+        <option value="mes">Este mês</option>
+        <option value="trim">Últimos 3 meses</option>
+        <option value="sem">Últimos 6 meses</option>
+        <option value="ano" selected>Este ano</option>
+        <option value="tudo">Todo o período</option>
+      </select>
+    </div>
+    <div id="dre-content"></div>
   </div>
 
   <!-- TAB: GMD -->
@@ -6237,6 +6267,95 @@ function renderCustoArroba(db) {
     <div class="rcard"><div class="rval money">${fmtMoney(receitaPotencial)}</div><div class="rlbl">💰 Receita Potencial</div></div>
     <div class="rcard"><div class="rval" style="color:${margemTotal>=0?'var(--verde)':'var(--vermelho)'}">${fmtMoney(margemTotal)}</div><div class="rlbl">📈 Lucro Bruto Est.</div></div>
     <div class="rcard"><div class="rval">${pesoTotal.toFixed(0)} kg</div><div class="rlbl">⚖️ Peso Total Rebanho</div></div>`;
+}
+
+// ═══════════════════════════════════════════
+// DRE — Demonstração do Resultado do Exercício
+// ═══════════════════════════════════════════
+function _dreDatas(periodo) {
+  const hoje = new Date();
+  const ymd = d => d.toISOString().split('T')[0];
+  if (periodo === 'mes') {
+    return { de: ymd(new Date(hoje.getFullYear(), hoje.getMonth(), 1)), ate: ymd(hoje) };
+  }
+  if (periodo === 'trim') {
+    return { de: ymd(new Date(hoje.getFullYear(), hoje.getMonth() - 3, 1)), ate: ymd(hoje) };
+  }
+  if (periodo === 'sem') {
+    return { de: ymd(new Date(hoje.getFullYear(), hoje.getMonth() - 6, 1)), ate: ymd(hoje) };
+  }
+  if (periodo === 'ano') {
+    return { de: ymd(new Date(hoje.getFullYear(), 0, 1)), ate: ymd(hoje) };
+  }
+  return { de: null, ate: null };
+}
+
+function renderDRE() {
+  const db  = getDB();
+  const el  = document.getElementById('dre-content');
+  if (!el) return;
+
+  const periodo  = document.getElementById('dre-periodo')?.value || 'ano';
+  const { de, ate } = _dreDatas(periodo);
+
+  const receitas = _finReceitas(db, de, ate);
+  const despesas = _finDespesas(db, de, ate);
+
+  const totRec  = receitas.reduce((s, i) => s + (i.valor || 0), 0);
+  const totDesp = despesas.reduce((s, i) => s + (i.valor || 0), 0);
+  const resultado = totRec - totDesp;
+  const margem  = totRec > 0 ? (resultado / totRec) * 100 : 0;
+
+  // Agrupa por categoria
+  const recByCat = {};
+  receitas.forEach(r => { const c = r.cat || 'Outras receitas'; recByCat[c] = (recByCat[c] || 0) + (r.valor || 0); });
+
+  const despByCat = {};
+  despesas.forEach(d => { const c = d.cat || 'Outros custos'; despByCat[c] = (despByCat[c] || 0) + (d.valor || 0); });
+
+  const cor = resultado >= 0 ? 'var(--verde)' : '#f87171';
+  const ico = resultado >= 0 ? '✅' : '❌';
+
+  const rowRec  = (cat, val) => `<div class="dre-row"><span class="dre-cat">${cat}</span><span class="dre-val rec">${fmtMoney(val)}</span></div>`;
+  const rowDesp = (cat, val) => `<div class="dre-row"><span class="dre-cat">${cat}</span><span class="dre-val desp">− ${fmtMoney(val)}</span></div>`;
+  const vazio   = txt => `<div class="dre-row"><span class="dre-cat" style="opacity:.45">${txt}</span><span class="dre-val" style="opacity:.4">—</span></div>`;
+
+  el.innerHTML = `
+    <div class="dre-card">
+      <div class="dre-section-title rec">➕ RECEITAS BRUTAS</div>
+      ${Object.entries(recByCat).length ? Object.entries(recByCat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>rowRec(c,v)).join('') : vazio('Nenhuma receita registrada no período')}
+      <div class="dre-row dre-subtotal">
+        <span class="dre-cat"><strong>Total Receitas</strong></span>
+        <span class="dre-val rec"><strong>${fmtMoney(totRec)}</strong></span>
+      </div>
+
+      <div class="dre-divider"></div>
+
+      <div class="dre-section-title desp">➖ CUSTOS OPERACIONAIS</div>
+      ${Object.entries(despByCat).length ? Object.entries(despByCat).sort((a,b)=>b[1]-a[1]).map(([c,v])=>rowDesp(c,v)).join('') : vazio('Nenhum custo registrado no período')}
+      <div class="dre-row dre-subtotal">
+        <span class="dre-cat"><strong>Total Custos</strong></span>
+        <span class="dre-val desp"><strong>− ${fmtMoney(totDesp)}</strong></span>
+      </div>
+
+      <div class="dre-divider"></div>
+
+      <div class="dre-row dre-resultado">
+        <span class="dre-cat" style="font-size:.9rem"><strong>${ico} RESULTADO LÍQUIDO</strong></span>
+        <span class="dre-val" style="color:${cor};font-size:1.15rem"><strong>${fmtMoney(resultado)}</strong></span>
+      </div>
+      <div class="dre-row" style="margin-top:4px;border-bottom:none">
+        <span class="dre-cat" style="opacity:.55;font-size:.75rem">Margem líquida</span>
+        <span class="dre-val" style="color:${cor};font-size:.82rem">${margem.toFixed(1)}%</span>
+      </div>
+    </div>
+
+    <div class="rel-grid">
+      <div class="rcard"><div class="rval money">${fmtMoney(totRec)}</div><div class="rlbl">💰 Receita Total</div></div>
+      <div class="rcard"><div class="rval money">${fmtMoney(totDesp)}</div><div class="rlbl">💸 Custo Total</div></div>
+      <div class="rcard"><div class="rval" style="color:${cor}">${fmtMoney(resultado)}</div><div class="rlbl">${ico} Resultado</div></div>
+      <div class="rcard"><div class="rval" style="color:${cor}">${margem.toFixed(1)}%</div><div class="rlbl">📊 Margem</div></div>
+    </div>`;
 }
 
 // ═══════════════════════════════════════════
@@ -10825,6 +10944,7 @@ function switchRelTab(tab) {
   if (tab === 'previsao')    renderPrevisaoReceita(getDB());
   if (tab === 'gmd')         renderGMD();
   if (tab === 'mensal')      initRelMensalTab();
+  if (tab === 'dre')         renderDRE();
 }
 
 function toggleRelMore() {
