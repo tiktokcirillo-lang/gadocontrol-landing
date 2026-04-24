@@ -10354,6 +10354,44 @@ function gerarRelatorioMensal(anoParam, mesParam) {
       });
       curY = curY + 2*(cH2+3) + 8;
 
+      // ── DESTAQUES DO MÊS ─────────────────────────────────────────────
+      (function() {
+        var insights = [];
+        if (receitaTotal > 0 || despesaTotal > 0) {
+          insights.push({ t: (saldo>=0?'+ Resultado do mes: +':' Resultado do mes: ') + fmtMoney(Math.abs(saldo)) + (saldo>=0?' (superavit)':' (deficit)'), cor: saldo>=0?[27,94,32]:[183,28,28] });
+        }
+        insights.push({ t: '  Rebanho atual: ' + sumCabecas(vivos) + ' cabecas vivas | ' + vivos.length + ' registros', cor: TEXTO });
+        if (sumCabecas(matrizes) > 0) {
+          var pct = Math.round(sumCabecas(prenhas)/sumCabecas(matrizes)*100);
+          insights.push({ t: '  Taxa de prenhez: ' + pct + '% — ' + (pct>=85?'excelente':pct>=70?'boa':'abaixo da meta'), cor: pct>=85?[27,94,32]:pct>=70?[230,81,0]:[183,28,28] });
+        }
+        if (partosProx.length > 0) {
+          insights.push({ t: '! ' + partosProx.length + ' parto(s) previsto(s) nos proximos 60 dias — preparar maternidade', cor: [183,28,28] });
+        }
+        var gmdKeys2 = Object.keys(gmdPorCat);
+        if (gmdKeys2.length > 0) {
+          var totG=0,totC=0; gmdKeys2.forEach(function(c){ totG+=gmdPorCat[c].sum; totC+=gmdPorCat[c].count; });
+          var gMed = totC>0?totG/totC:0;
+          insights.push({ t: '  GMD medio do mes: ' + gMed.toFixed(3) + ' kg/cab/dia' + (gMed>=0.45?' (dentro da meta EMBRAPA)':' — revisar suplementacao'), cor: gMed>=0.45?[27,94,32]:[230,81,0] });
+        }
+        if (despesaTotal > 0 && sumCabecas(vivos) > 0) {
+          insights.push({ t: '  Custo por cabeca: R$ ' + (despesaTotal/sumCabecas(vivos)).toFixed(2).replace('.',',') + '/cab/mes | Eventos sanitarios: ' + sanit.length, cor: TEXTO });
+        }
+        var boxH = 9 + insights.length * 5.5 + 3;
+        curY = chkPage(curY, boxH + 6);
+        doc.setFillColor(232,245,233); doc.roundedRect(M, curY, CW, boxH, 3, 3, 'F');
+        doc.setFillColor(45,106,47);   doc.rect(M, curY, 3, boxH, 'F');
+        doc.setTextColor(45,106,47); doc.setFontSize(8); doc.setFont('helvetica','bold');
+        doc.text('DESTAQUES DO MES', M+6, curY+6);
+        insights.forEach(function(ins,i){
+          doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+          doc.setTextColor.apply(doc, ins.cor);
+          doc.text(ins.t, M+6, curY+11+i*5.5);
+        });
+        doc.setTextColor.apply(doc,TEXTO); doc.setDrawColor(0); doc.setLineWidth(0.2);
+        curY += boxH + 6;
+      })();
+
       // ── 1. MOVIMENTAÇÃO DO REBANHO ────────────────────────────────────
       curY = secTitle('1. MOVIMENTACAO DO REBANHO - ' + nomeMes.toUpperCase() + ' ' + ano, VERDE, curY);
       doc.autoTable({
@@ -10390,6 +10428,38 @@ function gerarRelatorioMensal(anoParam, mesParam) {
         ]
       });
       curY = doc.lastAutoTable.finalY + 8;
+
+      // ── COMPOSIÇÃO DO REBANHO ─────────────────────────────────────────
+      (function() {
+        var catDefs = [
+          {cat:'Matriz',    cor:MARROM},  {cat:'Touro',     cor:ROXO},
+          {cat:'Bezerro',   cor:AZUL},    {cat:'Desmamado', cor:TEAL},
+          {cat:'Novilho',   cor:VERDE}
+        ];
+        var total = sumCabecas(vivos) || 1;
+        var rows = catDefs.map(function(d){
+          var n = sumCabecas(vivos.filter(function(a){ return a.categoria===d.cat; }));
+          return { cat:d.cat, n:n, pct:Math.round(n/total*100), cor:d.cor };
+        }).filter(function(d){ return d.n>0; });
+        if (rows.length === 0) return;
+        curY = chkPage(curY, 14 + rows.length*8);
+        doc.setFillColor.apply(doc,TEAL); doc.rect(M, curY, CW, 7,'F');
+        doc.setTextColor.apply(doc,BRNCO); doc.setFontSize(9.5); doc.setFont('helvetica','bold');
+        doc.text('COMPOSICAO DO REBANHO POR CATEGORIA', M+3, curY+5);
+        doc.setTextColor.apply(doc,TEXTO); curY+=10;
+        var barW = CW-62;
+        rows.forEach(function(d,i){
+          var ry = curY + i*8;
+          doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor.apply(doc,TEXTO);
+          doc.text(d.cat, M, ry+5);
+          doc.setFillColor(220,220,220); doc.roundedRect(M+28, ry+1, barW, 5, 1,1,'F');
+          doc.setFillColor.apply(doc,d.cor);
+          doc.roundedRect(M+28, ry+1, Math.max(2,barW*d.pct/100), 5, 1,1,'F');
+          doc.setFont('helvetica','bold');
+          doc.text(d.n+' cab.  '+d.pct+'%', M+28+barW+3, ry+5.5);
+        });
+        curY += rows.length*8 + 6;
+      })();
 
       // ── 3. PESAGENS ───────────────────────────────────────────────────
       if (pesagemMes.length > 0) {
@@ -10436,22 +10506,32 @@ function gerarRelatorioMensal(anoParam, mesParam) {
         var gmdKeys = Object.keys(gmdPorCat);
         if (gmdKeys.length > 0) {
           curY = chkPage(curY, 30);
-          curY = secTitle('GMD MEDIO POR CATEGORIA', AZUL, curY);
+          curY = secTitle('GMD MEDIO POR CATEGORIA vs META EMBRAPA', AZUL, curY);
+          var METAS_GMD = {Bezerro:0.400,Desmamado:0.500,Novilho:0.600,Matriz:0.350,Touro:0.400};
           doc.autoTable({
             startY:curY, margin:{left:M,right:M},
             styles:{fontSize:8,cellPadding:2.5,textColor:TEXTO},
             headStyles:{fillColor:AZUL,textColor:BRNCO,fontStyle:'bold'},
             alternateRowStyles:{fillColor:[240,245,255]},
-            head:[['Categoria','Pesagens c/ GMD','Media (kg/d)','Minimo','Maximo']],
+            head:[['Categoria','Pesagens','Media (kg/d)','Meta EMBRAPA','Status','Min','Max']],
             body:gmdKeys.map(function(cat){
               var g=gmdPorCat[cat];
-              return [
-                cat, String(g.count),
-                (g.sum/g.count).toFixed(3)+' kg/d',
-                Math.min.apply(null,g.vals).toFixed(3)+' kg/d',
-                Math.max.apply(null,g.vals).toFixed(3)+' kg/d'
-              ];
-            })
+              var med = g.sum/g.count;
+              var meta = METAS_GMD[cat]||0.450;
+              var pct = meta>0 ? Math.round(med/meta*100) : 0;
+              var status = pct>=100?'OK ('+pct+'%)':pct>=75?'Atenc. ('+pct+'%)':'Baixo ('+pct+'%)';
+              return [cat, String(g.count), med.toFixed(3)+' kg/d', meta.toFixed(3)+' kg/d', status,
+                Math.min.apply(null,g.vals).toFixed(3)+' kg/d', Math.max.apply(null,g.vals).toFixed(3)+' kg/d'];
+            }),
+            didParseCell:function(d){
+              if(d.section==='body'&&d.column.index===4){
+                var v=String(d.cell.raw);
+                if(v.indexOf('OK')===0) d.cell.styles.textColor=[27,94,32];
+                else if(v.indexOf('Atenc')===0) d.cell.styles.textColor=[230,81,0];
+                else d.cell.styles.textColor=[183,28,28];
+                d.cell.styles.fontStyle='bold';
+              }
+            }
           });
           curY = doc.lastAutoTable.finalY + 8;
         }
@@ -10533,31 +10613,72 @@ function gerarRelatorioMensal(anoParam, mesParam) {
 
       // ── 6. FINANCEIRO ─────────────────────────────────────────────────
       doc.addPage(); curY = 15;
+
+      // YTD (Acumulado no ano)
+      var anoStr = String(ano);
+      var ytdAnimVendidos = db.animais.filter(function(a){ return a.dataVenda && a.dataVenda.startsWith(anoStr) && a.dataVenda<=prefixo+'-31'; });
+      var ytdEvs = (db.eventos||[]).filter(function(e){ return e.data && e.data.startsWith(anoStr) && e.data<=prefixo+'-31'; });
+      var ytdLancs = (db.lancamentos||[]).filter(function(l){ return l.data && l.data.startsWith(anoStr) && l.data<=prefixo+'-31'; });
+      var ytdRec = ytdAnimVendidos.reduce(function(s,a){return s+(a.precoVenda||0);},0)
+                 + ytdLancs.filter(function(l){return l.tipo==='receita';}).reduce(function(s,l){return s+(l.valor||0);},0);
+      var ytdDesp = ytdEvs.filter(function(e){return e.tipo==='Custo / Despesa';}).reduce(function(s,e){return s+(e.preco||0);},0)
+                  + ytdLancs.filter(function(l){return l.tipo==='despesa';}).reduce(function(s,l){return s+(l.valor||0);},0);
+      var ytdSaldo = ytdRec - ytdDesp;
+
+      var custoCab = (despesaTotal>0 && sumCabecas(vivos)>0) ? despesaTotal/sumCabecas(vivos) : 0;
+      var margem   = receitaTotal>0 ? saldo/receitaTotal*100 : 0;
+
       curY = secTitle('6. FINANCEIRO - ' + nomeMes.toUpperCase() + ' ' + ano, [46,125,50], curY);
+      var finBody = [
+        ['Receita com vendas de animais',    vendasVal>0?fmtMoney(vendasVal):'—'],
+        ['Outras receitas (lancamentos)',     lancRecVal>0?fmtMoney(lancRecVal):'—'],
+        ['RECEITA TOTAL',                    fmtMoney(receitaTotal)],
+        ['Custos/Despesas (eventos)',         custosVal>0?fmtMoney(custosVal):'—'],
+        ['Despesas manuais (lancamentos)',    lancDespVal>0?fmtMoney(lancDespVal):'—'],
+        ['DESPESA TOTAL',                    fmtMoney(despesaTotal)],
+        ['Cabecas vendidas no mes',          String(sumCabecas(vendMes))+' cab.'],
+        ['SALDO DO MES',                     fmtMoney(saldo)],
+        ['Custo por cabeca viva',            custoCab>0?'R$ '+custoCab.toFixed(2).replace('.',',')+'/cab':'—'],
+        ['Margem sobre a receita',           receitaTotal>0?(margem>=0?'+':'')+margem.toFixed(1)+'%':'—'],
+      ];
       doc.autoTable({
-        startY:curY, margin:{left:M,right:M}, tableWidth:115,
+        startY:curY, margin:{left:M,right:M}, tableWidth:130,
         styles:{fontSize:9,cellPadding:3,textColor:TEXTO},
         headStyles:{fillColor:[46,125,50],textColor:BRNCO,fontStyle:'bold'},
         alternateRowStyles:{fillColor:[240,255,240]},
         head:[['Indicador Financeiro','Valor']],
-        body:[
-          ['Receita com vendas de animais',    vendasVal>0?fmtMoney(vendasVal):'—'],
-          ['Outras receitas (lancamentos)',     lancRecVal>0?fmtMoney(lancRecVal):'—'],
-          ['RECEITA TOTAL',                    fmtMoney(receitaTotal)],
-          ['Custos/Despesas (eventos)',         custosVal>0?fmtMoney(custosVal):'—'],
-          ['Despesas manuais (lancamentos)',    lancDespVal>0?fmtMoney(lancDespVal):'—'],
-          ['DESPESA TOTAL',                    fmtMoney(despesaTotal)],
-          ['Cabecas vendidas no mes',          String(sumCabecas(vendMes))+' cab.'],
-          ['SALDO DO MES',                     fmtMoney(saldo)],
-        ],
+        body: finBody,
         didParseCell:function(d){
           if(d.section==='body'&&d.column.index===1){
-            if(d.row.index===2) { d.cell.styles.fontStyle='bold'; d.cell.styles.textColor=[27,94,32]; }
-            if(d.row.index===5) { d.cell.styles.fontStyle='bold'; d.cell.styles.textColor=VERM; }
-            if(d.row.index===7) { d.cell.styles.fontStyle='bold'; d.cell.styles.textColor=saldo>=0?[27,94,32]:VERM; }
+            if(d.row.index===2){d.cell.styles.fontStyle='bold';d.cell.styles.textColor=[27,94,32];}
+            if(d.row.index===5){d.cell.styles.fontStyle='bold';d.cell.styles.textColor=VERM;}
+            if(d.row.index===7){d.cell.styles.fontStyle='bold';d.cell.styles.textColor=saldo>=0?[27,94,32]:VERM;}
+            if(d.row.index===9){d.cell.styles.fontStyle='bold';d.cell.styles.textColor=margem>=0?[27,94,32]:VERM;}
           }
           if(d.section==='body'&&d.column.index===0&&(d.row.index===2||d.row.index===5||d.row.index===7)){
             d.cell.styles.fontStyle='bold';
+          }
+        }
+      });
+      curY = doc.lastAutoTable.finalY + 6;
+
+      // Acumulado no Ano (YTD)
+      curY = chkPage(curY, 32);
+      curY = secTitle('ACUMULADO NO ANO — ' + anoStr, [27,94,32], curY);
+      doc.autoTable({
+        startY:curY, margin:{left:M,right:M}, tableWidth:130,
+        styles:{fontSize:9,cellPadding:3,textColor:TEXTO},
+        headStyles:{fillColor:[27,94,32],textColor:BRNCO,fontStyle:'bold'},
+        head:[['Indicador YTD (Jan–'+nomeMes+')','Valor']],
+        body:[
+          ['Receita acumulada',  fmtMoney(ytdRec)],
+          ['Despesa acumulada',  fmtMoney(ytdDesp)],
+          ['SALDO ACUMULADO',    fmtMoney(ytdSaldo)],
+        ],
+        didParseCell:function(d){
+          if(d.section==='body'&&d.row.index===2){
+            d.cell.styles.fontStyle='bold';
+            if(d.column.index===1) d.cell.styles.textColor=ytdSaldo>=0?[27,94,32]:VERM;
           }
         }
       });
@@ -10655,6 +10776,64 @@ function gerarRelatorioMensal(anoParam, mesParam) {
         });
         curY = doc.lastAutoTable.finalY + 6;
       }
+
+      // ── AÇÕES RECOMENDADAS ────────────────────────────────────────────
+      (function() {
+        var acoes = [];
+        // Partos próximos
+        if (partosProx.length > 0) {
+          var prox = partosProx.slice(0,2).map(function(m){ return m.brinco+' ('+fmtDate(m.dataPrevistoParto)+')'; }).join(', ');
+          acoes.push({ prioridade:'URGENTE', texto:'Preparar maternidade: ' + partosProx.length + ' parto(s) previsto(s). Proximas: '+prox, cor:[183,28,28] });
+        }
+        // GMD abaixo da meta
+        var gmdKeys3 = Object.keys(gmdPorCat);
+        if (gmdKeys3.length > 0) {
+          var METAS3={Bezerro:0.400,Desmamado:0.500,Novilho:0.600,Matriz:0.350,Touro:0.400};
+          var abaixo = gmdKeys3.filter(function(c){ var g=gmdPorCat[c]; return (g.sum/g.count)<(METAS3[c]||0.45)*0.75; });
+          if (abaixo.length>0) acoes.push({ prioridade:'ATENCAO', texto:'GMD abaixo de 75% da meta em: '+abaixo.join(', ')+'. Revisar suplementacao e pastagem.', cor:[230,81,0] });
+        }
+        // Taxa de prenhez
+        if (sumCabecas(matrizes)>0) {
+          var pct = Math.round(sumCabecas(prenhas)/sumCabecas(matrizes)*100);
+          if (pct<70) acoes.push({ prioridade:'ATENCAO', texto:'Taxa de prenhez baixa ('+pct+'%). Avaliar protocolo IATF e nutricao das matrizes.', cor:[230,81,0] });
+        }
+        // Sem pesagens no mês
+        if (pesagemMes.length===0) acoes.push({ prioridade:'ROTINA', texto:'Nenhuma pesagem registrada em '+nomeMes+'. Agendar pesagem do rebanho para monitorar GMD.', cor:AZUL });
+        // Animais sem pesagem recente
+        var semPes = vivos.filter(function(a){
+          var ultp = (db.eventos||[]).filter(function(e){ return e.brincoAnimal===a.brinco && e.tipo==='Pesagem'; })
+                      .sort(function(a,b){ return b.data.localeCompare(a.data); })[0];
+          return !ultp || diffDays(ultp.data,today())>90;
+        });
+        if (semPes.length>0 && pesagemMes.length>0) acoes.push({ prioridade:'ROTINA', texto:sumCabecas(semPes)+' cabecas sem pesagem ha mais de 90 dias. Incluir nas proximas pesagens.', cor:AZUL });
+        // Saldo negativo
+        if (saldo<0) acoes.push({ prioridade:'FINANCEIRO', texto:'Saldo negativo em '+nomeMes+' ('+fmtMoney(saldo)+'). Revisar estrutura de custos e oportunidades de venda.', cor:[183,28,28] });
+        // Padrão
+        acoes.push({ prioridade:'ROTINA', texto:'Continue registrando pesagens, eventos e custos mensalmente para relatórios cada vez mais completos.', cor:TEAL });
+
+        var boxH = 13 + acoes.length * 11 + 4;
+        curY = chkPage(curY, boxH + 12);
+        // Header verde escuro
+        doc.setFillColor(27,94,32); doc.rect(M, curY, CW, 7,'F');
+        doc.setTextColor.apply(doc,BRNCO); doc.setFontSize(9.5); doc.setFont('helvetica','bold');
+        doc.text('7. ACOES RECOMENDADAS PARA ' + (mes<12?MESES_PT[mes]:MESES_PT[0]).toUpperCase(), M+3, curY+5);
+        doc.setTextColor.apply(doc,TEXTO); curY+=10;
+
+        acoes.forEach(function(a,i){
+          var ay = curY + i*11;
+          // Badge de prioridade
+          doc.setFillColor.apply(doc,a.cor); doc.roundedRect(M, ay, 22, 6, 1,1,'F');
+          doc.setTextColor.apply(doc,BRNCO); doc.setFontSize(6); doc.setFont('helvetica','bold');
+          doc.text(a.prioridade, M+11, ay+4.3, {align:'center'});
+          // Texto da ação
+          doc.setTextColor.apply(doc,TEXTO); doc.setFont('helvetica','normal'); doc.setFontSize(8);
+          var linhas = doc.splitTextToSize(a.texto, CW-27);
+          doc.text(linhas, M+25, ay+4.3);
+          // Linha separadora
+          if(i<acoes.length-1){ doc.setDrawColor(220,220,220); doc.setLineWidth(0.3); doc.line(M, ay+9, M+CW, ay+9); }
+        });
+        curY += acoes.length*11 + 6;
+      })();
 
       addFooter();
       doc.save('GadoControl_Relatorio_' + nomeMes + '_' + ano + '.pdf');
