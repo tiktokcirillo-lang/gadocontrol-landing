@@ -6276,9 +6276,11 @@ function renderCustoArroba(db) {
 // ═══════════════════════════════════════════
 function _dreDatas(periodo) {
   const hoje = new Date();
-  const ymd = d => d.toISOString().split('T')[0];
+  // Usa métodos locais para evitar bug de fuso horário com toISOString()
+  const ymd = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  const fimMes = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0); // último dia do mês
   if (periodo === 'mes') {
-    return { de: ymd(new Date(hoje.getFullYear(), hoje.getMonth(), 1)), ate: ymd(hoje) };
+    return { de: ymd(new Date(hoje.getFullYear(), hoje.getMonth(), 1)), ate: ymd(fimMes) };
   }
   if (periodo === 'trim') {
     return { de: ymd(new Date(hoje.getFullYear(), hoje.getMonth() - 3, 1)), ate: ymd(hoje) };
@@ -6287,7 +6289,7 @@ function _dreDatas(periodo) {
     return { de: ymd(new Date(hoje.getFullYear(), hoje.getMonth() - 6, 1)), ate: ymd(hoje) };
   }
   if (periodo === 'ano') {
-    return { de: ymd(new Date(hoje.getFullYear(), 0, 1)), ate: ymd(hoje) };
+    return { de: ymd(new Date(hoje.getFullYear(), 0, 1)), ate: ymd(new Date(hoje.getFullYear(), 11, 31)) };
   }
   return { de: null, ate: null };
 }
@@ -7744,16 +7746,19 @@ let _finPeriodo     = 'mes';
 let _finTipoFiltro  = 'tudo';
 
 function _finDatas(periodo) {
-  const hoje = today();
-  const ano  = hoje.slice(0,4);
-  const mes  = hoje.slice(0,7);
-  if (periodo === 'mes') return { de: mes + '-01', ate: hoje };
+  const agora = new Date();
+  const ymd = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  const hoje = ymd(agora);
+  const ano  = agora.getFullYear();
+  const mes  = ano + '-' + String(agora.getMonth()+1).padStart(2,'0');
+  const fimMes = ymd(new Date(ano, agora.getMonth()+1, 0)); // último dia do mês corrente
+  if (periodo === 'mes') return { de: mes + '-01', ate: fimMes };
   if (periodo === 'tri') {
-    const d = new Date(hoje + 'T12:00:00');
+    const d = new Date(agora);
     d.setMonth(d.getMonth() - 3);
-    return { de: d.toISOString().slice(0,10), ate: hoje };
+    return { de: ymd(d), ate: hoje };
   }
-  if (periodo === 'ano') return { de: ano + '-01-01', ate: hoje };
+  if (periodo === 'ano') return { de: ano + '-01-01', ate: ano + '-12-31' };
   return { de: null, ate: null }; // tudo
 }
 
