@@ -2676,7 +2676,7 @@ body {
         <input type="number" id="fe-peso" placeholder="0.0" step="0.1" min="0">
       </div>
       <div class="fg" id="fe-preco-wrap" style="display:none">
-        <label>Preço Venda (R$)</label>
+        <label id="fe-preco-label">Preço Venda (R$)</label>
         <input type="number" id="fe-preco" placeholder="0,00" step="0.01" min="0">
       </div>
       <div class="fg" id="fe-ia-wrap" style="display:none">
@@ -7776,14 +7776,25 @@ function _finReceitas(db, de, ate) {
   return itens.sort((a,b) => (b.data||'').localeCompare(a.data||''));
 }
 
-// Agrega despesas: lançamentos manuais + eventos Custo/Despesa
+// Agrega despesas: lançamentos manuais + eventos Custo/Despesa + eventos sanitários com custo
 function _finDespesas(db, de, ate) {
   const itens = [];
-  // Eventos de Custo/Despesa
-  (db.eventos||[]).filter(e => e.tipo === 'Custo / Despesa' && e.preco > 0).forEach(e => {
+  const TIPO_CAT = {
+    'Vacina Clostridioses':'Sanidade (vacinas)', 'Vacina Febre Aftosa':'Sanidade (vacinas)',
+    'Vacina Brucelose':'Sanidade (vacinas)', 'Vacina Raiva':'Sanidade (vacinas)',
+    'Vacina – Outro':'Sanidade (vacinas)', 'Vermífugo':'Sanidade (vermífugo)',
+    'Inseminação Artificial':'Reprodução (IATF)', 'Cobertura Natural':'Reprodução (monta natural)',
+    'IATF — D0 (Início Protocolo)':'Reprodução (IATF)', 'IATF — D8 (Prostaglandina)':'Reprodução (IATF)',
+    'IATF — D17 (Retirada + EB)':'Reprodução (IATF)', 'IATF — Inseminação':'Reprodução (IATF)',
+    'Banho Carrapaticida':'Sanidade (carrapaticida)', 'Suplementação Mineral':'Nutrição (suplemento)',
+    'Tratamento':'Sanidade (tratamento)', 'Custo / Despesa':null,
+  };
+  // Eventos com custo: Custo/Despesa direto + sanidade/reprodução com valor informado
+  (db.eventos||[]).filter(e => Object.prototype.hasOwnProperty.call(TIPO_CAT, e.tipo) && e.preco > 0).forEach(e => {
     if ((de && e.data < de) || (ate && e.data > ate)) return;
-    itens.push({ id: 'evt_'+e.id, tipo:'despesa', cat: e.custoCat || 'Outro',
-      desc: e.detalhes || e.obs || 'Custo registrado',
+    const cat = e.tipo === 'Custo / Despesa' ? (e.custoCat || 'Outro') : (TIPO_CAT[e.tipo] || 'Outro');
+    itens.push({ id: 'evt_'+e.id, tipo:'despesa', cat,
+      desc: e.detalhes || e.tipo,
       valor: e.preco, data: e.data, origem: 'auto' });
   });
   // Lançamentos manuais
@@ -12406,6 +12417,21 @@ toggleEventFields = function() {
   if (carWrap)  carWrap.style.display  = tipo === 'Banho Carrapaticida'     ? '' : 'none';
   if (supWrap)  supWrap.style.display  = tipo === 'Suplementação Mineral'   ? '' : 'none';
   if (cusWrap)  cusWrap.style.display  = tipo === 'Custo / Despesa'         ? '' : 'none';
+  // Mostra campo de custo opcional para eventos sanitários/operacionais
+  var TIPOS_COM_CUSTO = [
+    'Vacina Clostridioses','Vacina Febre Aftosa','Vacina Brucelose','Vacina Raiva',
+    'Vacina – Outro','Vermífugo','Inseminação Artificial','Cobertura Natural',
+    'IATF — D0 (Início Protocolo)','IATF — D8 (Prostaglandina)','IATF — D17 (Retirada + EB)',
+    'IATF — Inseminação','Banho Carrapaticida','Suplementação Mineral','Tratamento'
+  ];
+  var precoWrap  = document.getElementById('fe-preco-wrap');
+  var precoLabel = document.getElementById('fe-preco-label');
+  if (TIPOS_COM_CUSTO.includes(tipo)) {
+    if (precoWrap)  precoWrap.style.display = '';
+    if (precoLabel) precoLabel.textContent  = 'Custo do procedimento (R$) — opcional';
+  } else if (tipo === 'Venda' && precoLabel) {
+    precoLabel.textContent = 'Preço Venda (R$)';
+  }
 };
 
 // ═══════════════════════════════════════════
@@ -12442,6 +12468,8 @@ submitEvento = function() {
   // Collect extra fields into hidden-like data on the event before saving
   // We'll use a global to pass data to aplicarEfeitos override above
   window._pendingEvExtra = {};
+  // Store the eid so saveDB patch can target the correct event (edit vs new)
+  window._pendingEvId = (document.getElementById('fe-eid') || {}).value || '';
   if (tipo === 'ECC — Avaliação') {
     window._pendingEvExtra.ecc = document.getElementById('fe-ecc').value;
   }
@@ -12471,14 +12499,18 @@ submitEvento = function() {
 // Patch the save pipeline: after submitEvento creates the event, inject extra fields
 var _origSaveDB = saveDB;
 saveDB = function(db) {
-  // If we have pending extra data and a recent new event, merge it
+  // If we have pending extra data, merge it into the correct event
   if (window._pendingEvExtra && Object.keys(window._pendingEvExtra).length > 0 && db.eventos && db.eventos.length > 0) {
-    var lastEv = db.eventos[db.eventos.length - 1];
-    if (lastEv && !lastEv._extraMerged) {
-      Object.assign(lastEv, window._pendingEvExtra);
-      lastEv._extraMerged = true;
+    var eid = window._pendingEvId || '';
+    var targetEv = eid
+      ? db.eventos.find(function(e){ return e.id === eid; })
+      : db.eventos[db.eventos.length - 1]; // New event is always last
+    if (targetEv && !targetEv._extraMerged) {
+      Object.assign(targetEv, window._pendingEvExtra);
+      targetEv._extraMerged = true;
     }
     window._pendingEvExtra = {};
+    window._pendingEvId = '';
   }
   _origSaveDB(db);
   // Auto-refresh: aba GMD e detalhe do animal
@@ -12687,6 +12719,19 @@ openEventoModal = function(eventoId, brincoPreset, tipoPreset) {
   if (tipoPreset) {
     var sel = document.getElementById('fe-tipo');
     if (sel) { sel.value = tipoPreset; toggleEventFields(); }
+  }
+  // Restore extra fields when editing an existing event
+  if (eventoId) {
+    var db2 = getDB();
+    var ev2 = (db2.eventos || []).find(function(e){ return e.id === eventoId; });
+    if (ev2 && ev2.tipo === 'Custo / Despesa') {
+      var catEl  = document.getElementById('fe-custo-cat');
+      var valEl  = document.getElementById('fe-custo-val');
+      var ncabEl = document.getElementById('fe-custo-ncab');
+      if (catEl  && ev2.custoCat) catEl.value  = ev2.custoCat;
+      if (valEl  && ev2.preco)    valEl.value   = ev2.preco;
+      if (ncabEl && ev2.custoCab) ncabEl.value  = ev2.custoCab;
+    }
   }
 };
 
