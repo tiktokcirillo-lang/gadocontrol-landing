@@ -1,9 +1,9 @@
 {
   "name": "GadoControl",
-  "short_name": "GadoCtrl",
-  "description": "Controle de Rebanho Bovino",
-  "start_url": "./GadoControl_v4_completo.html",
-  "scope": "./",
+  "short_name": "GadoControl",
+  "description": "Controle de Rebanho Bovino — offline, no celular",
+  "start_url": "/app",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#2D6A2F",
