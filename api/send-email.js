@@ -28,6 +28,7 @@ module.exports = async function handler(req, res) {
   try {
     await transporter.sendMail({
       from: `"GadoControl" <${process.env.GMAIL_USER}>`,
+      replyTo: process.env.GMAIL_USER,
       to: email,
       subject: `${firstName}, sua vaga no GadoControl está reservada!`,
       html: buildEmail(firstName, appUrl),
